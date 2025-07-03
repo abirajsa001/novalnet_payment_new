@@ -1,6 +1,6 @@
 const projectKey = __VITE_CTP_PROJECT_KEY__;
 
-const fetchCoCoOAuthToken = async () => {
+const fetchAdminToken = async () => {
   const myHeaders = new Headers();
 
   myHeaders.append('Authorization', `Basic ${btoa(`${__VITE_CTP_CLIENT_ID__}:${__VITE_CTP_CLIENT_SECRET__}`)}`);
@@ -36,11 +36,11 @@ const fetchCoCoOAuthToken = async () => {
 }
 
 const getSessionId = async(cartId) => {
-  const oAuthToken = await fetchCoCoOAuthToken();
+  const accessToken = await fetchAdminToken();
 
   const sessionMetadata = {
     processorUrl: __VITE_PROCESSOR_URL__,
-    allowedPaymentMethods: ["card", "invoice", "purchaseorder"], // add here your allowed methods for development purposes
+    allowedPaymentMethods: ["card", "invoice", "prepayment"], // add here your allowed methods for development purposes
   };
 
   const url = `${__VITE_CTP_SESSION_URL__}/${projectKey}/sessions`
@@ -49,7 +49,7 @@ const getSessionId = async(cartId) => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${oAuthToken}`,
+      Authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify({
       cart: {

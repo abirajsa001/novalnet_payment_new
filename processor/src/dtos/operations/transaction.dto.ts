@@ -1,5 +1,5 @@
 import { Static, Type } from '@sinclair/typebox';
-
+console.log('TransactionStatePending-start');
 export const TransactionDraft = Type.Object({
   cartId: Type.String({ format: 'uuid' }),
   paymentInterface: Type.String({ format: 'uuid' }),
@@ -15,7 +15,7 @@ export const TransactionDraft = Type.Object({
 const TransactionStatePending = Type.Literal('Pending', {
   description: 'The authorization/capture has not happened yet. Most likely because we need to receive notification.',
 });
-
+console.log('TransactionStatePending-end');
 const TransactionStateFailed = Type.Literal('Failed', {
   description: "Any error that occured for which the system can't recover automatically from.",
 });

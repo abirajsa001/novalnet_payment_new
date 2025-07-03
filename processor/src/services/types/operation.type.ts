@@ -6,7 +6,7 @@ import {
 } from '../../dtos/operations/payment-intents.dto';
 import { StatusResponseSchemaDTO } from '../../dtos/operations/status.dto';
 import { Payment } from '@commercetools/connect-payments-sdk/dist/commercetools';
-
+console.log('operation.type.ts');
 export type CapturePaymentRequest = {
   amount: AmountSchemaDTO;
   payment: Payment;

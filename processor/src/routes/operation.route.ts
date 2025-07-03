@@ -30,7 +30,7 @@ type OperationRouteOptions = {
   authorizationHook: AuthorityAuthorizationHook;
   paymentService: AbstractPaymentService;
 };
-
+console.log('operation.type.ts');
 export const operationsRoute = async (fastify: FastifyInstance, opts: FastifyPluginOptions & OperationRouteOptions) => {
   fastify.get<{ Reply: ConfigResponseSchemaDTO }>(
     '/config',

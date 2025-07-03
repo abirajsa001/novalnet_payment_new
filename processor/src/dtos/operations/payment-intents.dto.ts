@@ -1,5 +1,5 @@
 import { Static, Type } from '@sinclair/typebox';
-
+console.log('payment-intents.dto.ts');
 export const AmountSchema = Type.Object({
   centAmount: Type.Integer(),
   currencyCode: Type.String(),

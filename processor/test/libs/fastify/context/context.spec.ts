@@ -1,7 +1,7 @@
 import { describe, test, expect, afterEach, jest, beforeEach } from '@jest/globals';
 import { SessionAuthentication, SessionPrincipal } from '@commercetools/connect-payments-sdk';
 import * as Context from '../../../../src/libs/fastify/context/context';
-
+console.log('context.spec.ts-test');
 describe('context', () => {
   const sessionId: string = '123456-123456-123456-123456';
   const principal: SessionPrincipal = {

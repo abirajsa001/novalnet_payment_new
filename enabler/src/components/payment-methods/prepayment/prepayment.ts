@@ -13,20 +13,20 @@ import {
 } from "../../../dtos/mock-payment.dto";
 import { BaseOptions } from "../../../payment-enabler/payment-enabler-mock";
 
-export class InvoiceBuilder implements PaymentComponentBuilder {
+export class PrepaymentBuilder implements PaymentComponentBuilder {
   public componentHasSubmit = true;
   constructor(private baseOptions: BaseOptions) {}
 
   build(config: ComponentOptions): PaymentComponent {
-    return new Invoice(this.baseOptions, config);
+    return new Prepayment(this.baseOptions, config);
   }
 }
 
-export class Invoice extends BaseComponent {
+export class Prepayment extends BaseComponent {
   private showPayButton: boolean;
 
   constructor(baseOptions: BaseOptions, componentOptions: ComponentOptions) {
-    super(PaymentMethod.invoice, baseOptions, componentOptions);
+    super(PaymentMethod.prepayment, baseOptions, componentOptions);
     this.showPayButton = componentOptions?.showPayButton ?? false;
   }
 
@@ -37,7 +37,7 @@ export class Invoice extends BaseComponent {
 
     if (this.showPayButton) {
       document
-        .querySelector("#invoiceForm-paymentButton")
+        .querySelector("#purchaseOrderForm-paymentButton")
         .addEventListener("click", (e) => {
           e.preventDefault();
           this.submit();
@@ -110,8 +110,8 @@ export class Invoice extends BaseComponent {
     return this.showPayButton
       ? `
     <div class="${styles.wrapper}">
-      <p>Pay easily with Invoice and transfer the shopping amount within the specified date.</p>
-      <button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="invoiceForm-paymentButton">Pay</button>
+      <p>Pay easily with Prepayment and transfer the shopping amount within the specified date.</p>
+      <button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="purchaseOrderForm-paymentButton">Pay</button>
     </div>
     `
       : "";

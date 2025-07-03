@@ -16,7 +16,7 @@ import {
 
 import { SupportedPaymentComponentsSchemaDTO } from '../dtos/operations/payment-componets.dto';
 import { TransactionDraftDTO, TransactionResponseDTO } from '../dtos/operations/transaction.dto';
-
+console.log('abstract-payment.service.ts');
 export abstract class AbstractPaymentService {
   protected ctCartService: CommercetoolsCartService;
   protected ctPaymentService: CommercetoolsPaymentService;

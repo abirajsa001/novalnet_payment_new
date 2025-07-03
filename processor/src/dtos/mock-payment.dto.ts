@@ -7,15 +7,14 @@ export enum PaymentOutcome {
 
 export enum PaymentMethodType {
   CARD = 'card',
-  CUSTOM_TEST_METHOD = 'customtestmethod',
   INVOICE = 'invoice',
-  PURCHASE_ORDER = 'purchaseorder',
+  PREPAYMENT = 'prepayment',
 }
 
 export const PaymentResponseSchema = Type.Object({
   paymentReference: Type.String(),
 });
-
+console.log('mock-payment-dto.ts');
 export const PaymentOutcomeSchema = Type.Enum(PaymentOutcome);
 
 export const PaymentRequestSchema = Type.Object({
