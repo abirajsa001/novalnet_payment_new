@@ -282,9 +282,6 @@ console.log('status-handler');
     const ctCart = await this.ctCartService.getCart({
       id: getCartIdFromContext(),
     });
-    const deliveryAddress = await this.ctcc(ctCart);
-    const billingAddress  = await this.ctbb(ctCart);
-const parsedCart = typeof ctCart === 'string' ? JSON.parse(ctCart) : ctCart;
       // 🔐 Call Novalnet API server-side (no CORS issue)
     const novalnetPayload = {
       merchant: {
@@ -311,11 +308,7 @@ const parsedCart = typeof ctCart === 'string' ? JSON.parse(ctCart) : ctCart;
       },
 	custom: {
 	  input1: 'accesskey',
-	  inputval1: String(billingAddress?.firstName ?? 'empty'),
-	  input2: 'transaction amount',
-	  inputval2: String(parsedCart?.taxedPrice?.totalTax?.centAmount ?? 'empty'),
-	  input3: 'config',
-	  inputval3: String(getConfig()?.novalnetPrivateKey ?? 'empty'),
+	  inputval1: 'check',
 	}
 	    
     };
