@@ -20,12 +20,6 @@ log.info('before-payment-routes');
 export const paymentRoutes = async (fastify: FastifyInstance, opts: FastifyPluginOptions & PaymentRoutesOptions) => {
 
   fastify.post('/test', async (request, reply) => {
-    console.log("Received payment request in processor");
-    // const cartt = await CommercetoolsCartService.getCart({
-    //   id: getCartIdFromContext(),
-    // });
-    const cartD = await opts.paymentService.get_customer_addrs();
-    var cartt = typeof cartD !== 'undefined' && cartD !== '' ? cartD : 'empty';
     // 🔐 Call Novalnet API server-side (no CORS issue)
     const novalnetPayload = {
       merchant: {
@@ -52,7 +46,7 @@ export const paymentRoutes = async (fastify: FastifyInstance, opts: FastifyPlugi
       },
       custom: {
         input1: 'accesskey',
-        inputval1: cartD,
+        inputval1: 'check',
       },
     };
 
