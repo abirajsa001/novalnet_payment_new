@@ -27,7 +27,6 @@ import { Static, Type } from '@sinclair/typebox';
  *
  *
  */
-console.log('status.dto.ts');
 export const StatusResponseSchema = Type.Object({
   status: Type.String(),
   timestamp: Type.String(),

@@ -1,4 +1,4 @@
- import {
+import {
   ComponentOptions,
   PaymentComponent,
   PaymentComponentBuilder,
@@ -48,37 +48,13 @@ export class Invoice extends BaseComponent {
   async submit() {
     // here we would call the SDK to submit the payment
     this.sdk.init({ environment: this.environment });
-    console.log('submit-triggered');
     try {
-      // start original
-      const requestDatas: PaymentRequestSchemaDTO = {
-        paymentMethod: {
-          type: this.paymentMethod,
-        },
-        paymentOutcome: PaymentOutcome.AUTHORIZED,
-      };
-     
-      const responses = await fetch(this.processorUrl + "/test", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Session-Id": this.sessionId,
-        },
-        body: JSON.stringify(requestDatas),
-      });
-      console.log('responses-dataa');
-    console.log(responses);
-      
-      
       const requestData: PaymentRequestSchemaDTO = {
         paymentMethod: {
           type: this.paymentMethod,
         },
         paymentOutcome: PaymentOutcome.AUTHORIZED,
       };
-      console.log('requestData');
-    console.log(requestData);
-     
       const response = await fetch(this.processorUrl + "/payments", {
         method: "POST",
         headers: {
@@ -87,10 +63,7 @@ export class Invoice extends BaseComponent {
         },
         body: JSON.stringify(requestData),
       });
-      console.log('responseData-newdata');
-      console.log(response);
       const data = await response.json();
-      console.log(data);
       if (data.paymentReference) {
         this.onComplete &&
           this.onComplete({
@@ -100,7 +73,6 @@ export class Invoice extends BaseComponent {
       } else {
         this.onError("Some error occurred. Please try again.");
       }
-
     } catch (e) {
       this.onError("Some error occurred. Please try again.");
     }

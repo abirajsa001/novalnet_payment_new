@@ -1,7 +1,6 @@
 import {
   statusHandler,
   healthCheckCommercetoolsPermissions,
-  Cart,
   ErrorRequiredField,
   TransactionType,
   TransactionState,
@@ -30,7 +29,6 @@ import { getCartIdFromContext, getPaymentInterfaceFromContext } from '../libs/fa
 import { randomUUID } from 'crypto';
 import { launchpadPurchaseOrderCustomType } from '../custom-types/custom-types';
 import { TransactionDraftDTO, TransactionResponseDTO } from '../dtos/operations/transaction.dto';
-import { log } from '../libs/logger';
 
 export class MockPaymentService extends AbstractPaymentService {
   constructor(opts: MockPaymentServiceOptions) {
@@ -47,9 +45,6 @@ export class MockPaymentService extends AbstractPaymentService {
    */
   public async config(): Promise<ConfigResponse> {
     const config = getConfig();
-    console.log('config');
-    log.info('config');
-    console.log(config);
     return {
       clientKey: config.mockClientKey,
       environment: config.mockEnvironment,
@@ -112,8 +107,7 @@ export class MockPaymentService extends AbstractPaymentService {
         '@commercetools/connect-payments-sdk': packageJSON.dependencies['@commercetools/connect-payments-sdk'],
       }),
     })();
-console.log('status-handler');
-    log.info('status-handler');
+
     return handler.body;
   }
 
@@ -133,10 +127,13 @@ console.log('status-handler');
           type: PaymentMethodType.CARD,
         },
         {
+          type: PaymentMethodType.CUSTOM_TEST_METHOD,
+        },
+        {
           type: PaymentMethodType.INVOICE,
         },
         {
-          type: PaymentMethodType.PREPAYMENT,
+          type: PaymentMethodType.PURCHASE_ORDER,
         },
       ],
     };
@@ -161,8 +158,6 @@ console.log('status-handler');
         state: 'Success',
       },
     });
-    console.log('capture-payment');
-    log.info('capture-payment');
     return { outcome: PaymentModificationStatus.APPROVED, pspReference: request.payment.interfaceId as string };
   }
 
@@ -258,8 +253,6 @@ console.log('status-handler');
     throw new ErrorInvalidOperation('There is no successful payment transaction to reverse.');
   }
 
- 
-  
   /**
    * Create payment
    *
@@ -271,20 +264,17 @@ console.log('status-handler');
    */
   public async createPayment(request: CreatePaymentRequest): Promise<PaymentResponseSchemaDTO> {
     this.validatePaymentMethod(request);
+
     const ctCart = await this.ctCartService.getCart({
       id: getCartIdFromContext(),
     });
-      // 🔐 Call Novalnet API server-side (no CORS issue)
+
     const ctPayment = await this.ctPaymentService.createPayment({
       amountPlanned: await this.ctCartService.getPaymentAmount({
         cart: ctCart,
       }),
       paymentMethodInfo: {
         paymentInterface: getPaymentInterfaceFromContext() || 'mock',
-      },
-    paymentStatus: { 
-        interfaceCode:  'This is a coomen text', 
-        interfaceText: 'This is a common text',
       },
       ...(ctCart.customerId && {
         customer: {
@@ -307,6 +297,7 @@ console.log('status-handler');
     });
 
     const pspReference = randomUUID().toString();
+
     const updatedPayment = await this.ctPaymentService.updatePayment({
       id: ctPayment.id,
       pspReference: pspReference,
@@ -317,7 +308,7 @@ console.log('status-handler');
         interactionId: pspReference,
         state: this.convertPaymentResultCode(request.data.paymentOutcome),
       },
-      ...(request.data.paymentMethod.type === PaymentMethodType.PREPAYMENT && {
+      ...(request.data.paymentMethod.type === PaymentMethodType.PURCHASE_ORDER && {
         customFields: {
           type: {
             key: launchpadPurchaseOrderCustomType.key,
@@ -340,8 +331,7 @@ console.log('status-handler');
     const TRANSACTION_AUTHORIZATION_TYPE: TransactionType = 'Authorization';
     const TRANSACTION_STATE_SUCCESS: TransactionState = 'Success';
     const TRANSACTION_STATE_FAILURE: TransactionState = 'Failure';
-    console.log('handle-transaction');
-    log.info('handle-transaction');
+
     const maxCentAmountIfSuccess = 10000;
 
     const ctCart = await this.ctCartService.getCart({ id: transactionDraft.cartId });
@@ -383,7 +373,6 @@ console.log('status-handler');
         state: transactionState,
         interactionId: pspReference,
       },
-
     });
 
     if (isBelowSuccessStateThreshold) {
@@ -422,7 +411,7 @@ console.log('status-handler');
   private validatePaymentMethod(request: CreatePaymentRequest): void {
     const { paymentMethod } = request.data;
 
-    if (paymentMethod.type === PaymentMethodType.PREPAYMENT && !paymentMethod.poNumber) {
+    if (paymentMethod.type === PaymentMethodType.PURCHASE_ORDER && !paymentMethod.poNumber) {
       throw new ErrorRequiredField('poNumber');
     }
   }

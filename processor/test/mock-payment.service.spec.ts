@@ -20,7 +20,7 @@ import * as StatusHandler from '@commercetools/connect-payments-sdk/dist/api/han
 import { HealthCheckResult } from '@commercetools/connect-payments-sdk';
 import { PaymentMethodType, PaymentOutcome } from '../src/dtos/mock-payment.dto';
 import { TransactionDraftDTO } from '../src/dtos/operations/transaction.dto';
-console.log('mock-payment.service.spec.ts-test');
+
 interface FlexibleConfig {
   [key: string]: string; // Adjust the type according to your config values
 }
@@ -64,10 +64,11 @@ describe('mock-payment.service', () => {
 
   test('getSupportedPaymentComponents', async () => {
     const result: ConfigResponse = await paymentService.getSupportedPaymentComponents();
-    expect(result?.components).toHaveLength(3);
+    expect(result?.components).toHaveLength(4);
     expect(result?.components[0]?.type).toStrictEqual('card');
-    expect(result?.components[1]?.type).toStrictEqual('invoice');
-    expect(result?.components[2]?.type).toStrictEqual('prepayment');
+    expect(result?.components[1]?.type).toStrictEqual('customtestmethod');
+    expect(result?.components[2]?.type).toStrictEqual('invoice');
+    expect(result?.components[3]?.type).toStrictEqual('purchaseorder');
     expect(result?.dropins).toHaveLength(0);
   });
 
@@ -211,11 +212,11 @@ describe('mock-payment.service', () => {
     expect(result?.paymentReference).toStrictEqual('123456');
   });
 
-  test('create prepayment payment successfully', async () => {
+  test('create purchaseorder payment successfully', async () => {
     const createPaymentOpts: CreatePaymentRequest = {
       data: {
         paymentMethod: {
-          type: PaymentMethodType.PREPAYMENT,
+          type: PaymentMethodType.PURCHASE_ORDER,
           poNumber: '123456',
           invoiceMemo: 'This is a test invoice',
         },
@@ -232,11 +233,11 @@ describe('mock-payment.service', () => {
     expect(result?.paymentReference).toStrictEqual('123456');
   });
 
-  test('create prepayment payment returns an error when PO number is not received', async () => {
+  test('create purchaseorder payment returns an error when PO number is not received', async () => {
     const createPaymentOpts: CreatePaymentRequest = {
       data: {
         paymentMethod: {
-          type: PaymentMethodType.PREPAYMENT,
+          type: PaymentMethodType.PURCHASE_ORDER,
         },
         paymentOutcome: PaymentOutcome.AUTHORIZED,
       },

@@ -163,6 +163,8 @@ export enum PaymentMethod {
   bancontactcard = "bcmc",
   /* Card */
   card = "card",
+  /* Custom method */
+  customtestmethod = "customtestmethod",
   /* EPS */
   eps = "eps",
   /* Google Pay */
@@ -179,8 +181,8 @@ export enum PaymentMethod {
   klarna_pay_overtime = "klarna_account",
   /* PayPal */
   paypal = "paypal",
-  /* Prepayment */
-  prepayment = "prepayment",
+  /* Purchase Order */
+  purchaseorder = "purchaseorder",
   /* TWINT */
   twint = "twint",
 }

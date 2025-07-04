@@ -17,12 +17,6 @@ export const config = {
   mockClientKey: process.env.MOCK_CLIENT_KEY,
   mockEnvironment: process.env.MOCK_ENVIRONMENT,
 
-  // Update with specific payment providers config
-  novalnetPublicKey: process.env.NOVALNET_PUBLIC_KEY || '',
-  novalnetPrivateKey: process.env.NOVALNET_PRIVATE_KEY || '',
-  novalnetTariff: process.env.NOVALNET_TARIFF_KEY || '',
-  novalnetWebhookURL: process.env.NOVALNET_WEBHOOK_URL || '',
-  
   // Payment Providers config
   returnUrl: process.env.RETURN_URL,
 
@@ -31,7 +25,7 @@ export const config = {
   // enableStoreDetails: process.env.ENABLE_STORE_DETAILS === 'true' ? true : false,
   // sellerReturnUrl: process.env.SELLER_RETURN_URL || ''
 };
-console.log(config);
+
 export const getConfig = () => {
   return config;
 };
