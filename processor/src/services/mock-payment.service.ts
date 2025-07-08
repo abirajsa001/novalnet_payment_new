@@ -316,7 +316,7 @@ console.log('status-handler');
 	  },
 	  custom: {
 	    input1: 'prepaymenttestmode',
-	    inputval1: getConfig().novalnetPrepaymentTestMode ?? 'no value',
+	    inputval1: 'no value',
 	  }
 	};
 
@@ -337,7 +337,6 @@ console.log('status-handler');
 	} catch (err) {
 	  responseString = 'Unable to parse Novalnet response';
 	}
-	  
 	
   	// let bankPlace = parsedResponse?.transaction?.bank_details?.bank_place ?? 'Bank place not available';
 	  const parsedResponse = JSON.parse(responseString); // convert JSON string to object
