@@ -51,9 +51,6 @@ deployAs:
         - key: NOVALNET_WEBHOOK_URL
           description: Novalnet unique identifier.
           required: true
-          key: NOVALNET_PREPAYMENT_TEST_MODE
-          description: Novalnet unique identifier test description.
-          required: true
       securedConfiguration:
         - key: CTP_CLIENT_SECRET
           description: "commercetools client secret"
