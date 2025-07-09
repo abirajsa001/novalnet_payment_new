@@ -22,8 +22,11 @@ export const config = {
   novalnetPrivateKey: process.env.NOVALNET_PRIVATE_KEY || '',
   novalnetTariff: process.env.NOVALNET_TARIFF_KEY || '',
   novalnetWebhookURL: process.env.NOVALNET_WEBHOOK_URL || '',
-  novalnetTestMode: process.env.NOVALNET_TEST_MODE || '',
-  
+  novalnetInvoiceTestMode: process.env.NOVALNET_INVOICE_TEST_MODE || '',
+  novalnetInvoiceDueDate: process.env.NOVALNET_INVOCIE_DUE_DATE || '',
+  novalnetInvoicePaymentAction: process.env.NOVALNET_INVOICE_PAYMENT_ACTION || '',
+  novalnetInvoicePaymentActionMinimumAmount: process.env.NOVALNET_INVOICE_PAYMENT_ACTION_MINIMUM_AMOUNT || '',
+
   // Payment Providers config
   returnUrl: process.env.RETURN_URL,
 
