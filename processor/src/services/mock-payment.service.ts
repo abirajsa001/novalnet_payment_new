@@ -315,8 +315,16 @@ console.log('status-handler');
 	    currency: 'EUR',
 	  },
 	  custom: {
-	    input1: 'prepaymenttestmode',
-	    inputval1: 'no value',
+	    input1: 'currencyCode',
+	    inputval1: String(parsedCart?.taxedPrice?.totalGross?.currencyCode ?? 'empty'),
+	    input2: 'transaction amount',
+	    inputval2: String(parsedCart?.taxedPrice?.totalGross?.centAmount ?? 'empty'),
+	    input3: 'customerEmail',
+	    inputval3: String(parsedCart.customerEmail ?? "Email not available"),
+	    input4: 'Payment-Method',
+	    inputval4: String(request.data.paymentMethod.type ?? "Payment-Method not available"),
+	    input5: 'customerId',
+	    inputval5: String(ctCart?.customerId ?? "No Customer"),
 	  }
 	};
 
@@ -337,13 +345,23 @@ console.log('status-handler');
 	} catch (err) {
 	  responseString = 'Unable to parse Novalnet response';
 	}
+	  
 	
-  	// let bankPlace = parsedResponse?.transaction?.bank_details?.bank_place ?? 'Bank place not available';
-	  const parsedResponse = JSON.parse(responseString); // convert JSON string to object
-	  let bankPlace = parsedResponse?.transaction?.bank_details?.bank_place ?? 'Bank place not available';
-	let bankname = parsedResponse?.transaction?.bank_details?.bank_name ?? 'Bank name not available';
-	let bankDetails = `Bank Place: ${bankPlace}<br>Bank Name: ${bankname}`;
 
+	const parsedResponse = JSON.parse(responseString); // convert JSON string to object
+	const transactiondetails = `Novalnet Transaction ID: ${parsedResponse?.transaction?.tid}
+	Test Order`;
+	let bankDetails = ''; // Use `let` instead of `const` so we can reassign it
+	if (parsedResponse?.transaction?.bank_details) {
+	  bankDetails = `Please transfer the amount of ${parsedResponse?.transaction?.amount} to the following account.
+	Account holder: ${parsedResponse.transaction.bank_details.account_holder}
+	IBAN: ${parsedResponse.transaction.bank_details.iban}
+	BIC: ${parsedResponse.transaction.bank_details.bic}
+	BANK NAME: ${parsedResponse.transaction.bank_details.bank_name}
+	BANK PLACE: ${parsedResponse.transaction.bank_details.bank_place}
+	Please use the following payment reference for your money transfer, as only through this way your payment is matched and assigned to the order:
+	Payment Reference 1: ${parsedResponse.transaction.tid}`;
+	}
 
     const ctPayment = await this.ctPaymentService.createPayment({
       amountPlanned: await this.ctCartService.getPaymentAmount({
@@ -353,7 +371,7 @@ console.log('status-handler');
         paymentInterface: getPaymentInterfaceFromContext() || 'mock',
       },
     paymentStatus: { 
-        interfaceCode:  bankDetails,
+        interfaceCode:  transactiondetails + '\n' + bankDetails,
         interfaceText: responseString,
       },
       ...(ctCart.customerId && {

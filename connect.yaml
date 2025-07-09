@@ -6,8 +6,17 @@ deployAs:
     endpoint: /invoice
     configuration:
       standardConfiguration:
-        - key: NOVALNET_TEST_MODE
-          description: Novalnet unique identifier test description dara data.
+        - key: NOVALNET_INVOICE_TEST_MODE
+          description: Novalnet unique identifier test description data.
+          required: true
+        - key: NOVALNET_INVOICE_DUE_DATE
+          description: Novalnet unique identifier test description data.
+          required: true
+        - key: NOVALNET_INVOICE_PAYMENT_ACTION
+          description: Novalnet unique identifier test description data.
+          required: true
+        - key: NOVALNET_INVOICE_PAYMENT_ACTION_MINIMUM_AMOUNT
+          description: Novalnet unique identifier test description data.
           required: true
   - name: prepayment
     applicationType: service
@@ -15,8 +24,11 @@ deployAs:
     configuration:
       standardConfiguration:
         - key: NOVALNET_PREPAYMENT_TEST_MODE
-          description: Novalnet unique identifier test description.
-          required: true          
+          description: Novalnet unique identifier test description data.
+          required: true
+        - key: NOVALNET_PREPAYMENT_DUE_DATE
+          description: Novalnet unique identifier test description data.
+          required: true
   - name: processor
     applicationType: service
     endpoint: /

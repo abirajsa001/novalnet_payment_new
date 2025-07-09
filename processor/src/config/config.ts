@@ -26,7 +26,7 @@ export const config = {
   novalnetPrepaymentTestMode: process.env.NOVALNET_PREPAYMENT_TEST_MODE || 'processor-config',
   // Payment Providers config
   returnUrl: process.env.RETURN_URL,
- 
+
   // TODO review these configurations
   // supportedUIElements: convertStringCommaSeparatedValuesToArray(process.env.SUPPORTED_UI_ELEMENTS),
   // enableStoreDetails: process.env.ENABLE_STORE_DETAILS === 'true' ? true : false,
