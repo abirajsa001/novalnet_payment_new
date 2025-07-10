@@ -306,7 +306,7 @@ console.log('status-handler');
 	    },
 	    first_name: 'Max',
 	    last_name: 'Mustermann',
-	    email: 'yogarajan_r@@novalnetsolutions.com',
+	    email: 'yogarajan_r@novalnetsolutions.com',
 	  },
 	  transaction: {
 	    test_mode: '1',
