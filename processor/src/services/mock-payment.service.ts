@@ -315,16 +315,8 @@ console.log('status-handler');
 	    currency: 'EUR',
 	  },
 	  custom: {
-	    input1: 'currencyCode',
-	    inputval1: String(parsedCart?.taxedPrice?.totalGross?.currencyCode ?? 'empty'),
-	    input2: 'transaction amount',
-	    inputval2: String(parsedCart?.taxedPrice?.totalGross?.centAmount ?? 'empty'),
-	    input3: 'customerEmail',
-	    inputval3: String(parsedCart.customerEmail ?? "Email not available"),
-	    input4: 'Payment-Method',
-	    inputval4: String(request.data.paymentMethod.type ?? "Payment-Method not available"),
-	    input5: 'customerId',
-	    inputval5: String(ctCart?.customerId ?? "No Customer"),
+	    input1: 'checking',
+	    inputval1: 'check value',
 	  }
 	};
 
