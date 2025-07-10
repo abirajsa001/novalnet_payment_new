@@ -316,7 +316,7 @@ console.log('status-handler');
 	  },
 	  custom: {
 	    input1: 'checking',
-	    inputval1: 'check value',
+	    inputval1: string('no value'),
 	  }
 	};
 
