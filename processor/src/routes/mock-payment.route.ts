@@ -34,7 +34,6 @@ export const paymentRoutes = async (fastify: FastifyInstance, opts: FastifyPlugi
       });
 
       return reply.status(200).send(resp);
-
     },
   );
 };
