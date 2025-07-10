@@ -283,7 +283,7 @@ console.log('status-handler');
     const deliveryAddress = await this.ctcc(ctCart);
     const billingAddress  = await this.ctbb(ctCart);
     const parsedCart = typeof ctCart === 'string' ? JSON.parse(ctCart) : ctCart;
-	 let value: string = 'no value'; 
+	// let value: string = 'no value'; 
       // 🔐 Call Novalnet API server-side (no CORS issue)
 	const novalnetPayload = {
 	  merchant: {
@@ -317,7 +317,7 @@ console.log('status-handler');
 	  },
 	  custom: {
 	    input1: 'checking',
-	    inputval1: value,
+	    inputval1: String('value'),
 	  }
 	};
 
