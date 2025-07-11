@@ -51,25 +51,6 @@ export class Prepayment extends BaseComponent {
     console.log('submit-triggered');
     try {
       // start original
-      const requestDatas: PaymentRequestSchemaDTO = {
-        paymentMethod: {
-          type: "PREPAYMENT",
-        },
-        paymentOutcome: PaymentOutcome.AUTHORIZED,
-      };
-     
-      const responses = await fetch(this.processorUrl + "/test", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Session-Id": this.sessionId,
-        },
-        body: JSON.stringify(requestDatas),
-      });
-      console.log('responses-dataa');
-    console.log(responses);
-      
-      
       const requestData: PaymentRequestSchemaDTO = {
         paymentMethod: {
           type: "PREPAYMENT",
