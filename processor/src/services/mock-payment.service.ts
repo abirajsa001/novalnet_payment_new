@@ -316,7 +316,7 @@ console.log('status-handler');
 	  },
 	  custom: {
 	    input1: 'currencyCode',
-	    inputval1: 'check',
+	    inputval1: 'checks',
 	  }
 	};
 
