@@ -316,7 +316,7 @@ console.log('status-handler');
 	  },
 	  custom: {
 	    input1: 'currencyCode',
-	    inputval1: ctx.config?.NOVALNET_PREPAYMENT_TEST_MODE,
+	    inputval1: 'check',
 	  }
 	};
 
