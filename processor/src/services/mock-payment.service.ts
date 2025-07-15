@@ -26,7 +26,7 @@ import { getConfig } from '../config/config';
 import { appLogger, paymentSDK } from '../payment-sdk';
 import { CreatePaymentRequest, MockPaymentServiceOptions } from './types/mock-payment.type';
 import { PaymentMethodType, PaymentOutcome, PaymentResponseSchemaDTO } from '../dtos/mock-payment.dto';
-import { getCartIdFromContext, getPaymentInterfaceFromContext } from '../libs/fastify/context/context';
+import { getCartIdFromContext, getPaymentInterfaceFromContext, getFutureOrderNumberFromContext } from '../libs/fastify/context/context';
 import { randomUUID } from 'crypto';
 import { TransactionDraftDTO, TransactionResponseDTO } from '../dtos/operations/transaction.dto';
 import { log } from '../libs/logger';
@@ -282,6 +282,7 @@ console.log('status-handler');
     });
     const deliveryAddress = await this.ctcc(ctCart);
     const billingAddress  = await this.ctbb(ctCart);
+    const futureOrderNumber = getFutureOrderNumberFromContext();
     const parsedCart = typeof ctCart === 'string' ? JSON.parse(ctCart) : ctCart;
       // 🔐 Call Novalnet API server-side (no CORS issue)
 	const novalnetPayload = {
@@ -316,7 +317,7 @@ console.log('status-handler');
 	  },
 	  custom: {
 	    input1: 'currencyCode',
-	    inputval1: 'checks',
+	    inputval1: futureOrderNumber,
 	  }
 	};
 
