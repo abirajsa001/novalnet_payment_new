@@ -24,6 +24,7 @@ deployAs:
     configuration:
       standardConfiguration:
         - key: NOVALNET_PREPAYMENT_TEST_MODE
+          value: "1"
           description: Novalnet unique identifier test description data.
           required: true
         - key: NOVALNET_PREPAYMENT_DUE_DATE
