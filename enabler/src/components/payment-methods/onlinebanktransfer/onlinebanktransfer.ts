@@ -56,7 +56,7 @@ export class Onlinebanktransfer extends BaseComponent {
     try {
       const requestData: PaymentRequestSchemaDTO = {
         paymentMethod: {
-          type: this.paymentMethod,
+          type: 'ONLINE_BANK_TRANSFER',
         },
         paymentOutcome: PaymentOutcome.AUTHORIZED,
       };
