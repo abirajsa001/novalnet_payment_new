@@ -14,20 +14,20 @@ import {
 import { BaseOptions } from "../../../payment-enabler/payment-enabler-mock";
 import { checkoutFlow } from '@commercetools/checkout-browser-sdk';
 
-export class PaypalBuilder implements PaymentComponentBuilder {
+export class MbwayBuilder implements PaymentComponentBuilder {
   public componentHasSubmit = true;
   constructor(private baseOptions: BaseOptions) {}
 
   build(config: ComponentOptions): PaymentComponent {
-    return new Paypal(this.baseOptions, config);
+    return new Mbway(this.baseOptions, config);
   }
 }
  
-export class Paypal extends BaseComponent {
+export class Mbway extends BaseComponent {
   private showPayButton: boolean;
 
   constructor(baseOptions: BaseOptions, componentOptions: ComponentOptions) {
-    super(PaymentMethod.paypal, baseOptions, componentOptions);
+    super(PaymentMethod.mbway, baseOptions, componentOptions);
     this.showPayButton = componentOptions?.showPayButton ?? false;
   }
 
@@ -48,7 +48,7 @@ export class Paypal extends BaseComponent {
 
   async submit() {
     this.sdk.init({ environment: this.environment });
-    console.log('=== PAYPAL ENABLER SUBMIT START ===');
+    console.log('=== Mbway ENABLER SUBMIT START ===');
     console.log('Environment:', this.environment);
     console.log('Processor URL:', this.processorUrl);
     console.log('Session ID:', this.sessionId);
@@ -112,7 +112,7 @@ export class Paypal extends BaseComponent {
     return this.showPayButton
       ? `
     <div class="${styles.wrapper}">
-      <p>Pay easily with Paypal and transfer the shopping amount within the specified date.</p>
+      <p>Pay easily with Mbway and transfer the shopping amount within the specified date.</p>
       <button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="purchaseOrderForm-paymentButton">Pay Now</button>
     </div>
     `
