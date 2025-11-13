@@ -325,6 +325,9 @@ export class MockPaymentService extends AbstractPaymentService {
     }
     const paymentRef = responseData?.custom?.paymentRef ?? "";
 
+    const  Response = JSON.parse(responseString);
+    const transactionInfo = `Novalnet Transaction ID: ${responseData?.transaction?.tid ?? "N/A"}\nTest Order`;
+
     log.info("Payment updated with Novalnet details:");
 
     const cartId = getCartIdFromContext();
@@ -373,12 +376,12 @@ export class MockPaymentService extends AbstractPaymentService {
         const updatedPayment = await this.ctPaymentService.updatePayment({
           id: ctPayment.id,
           pspReference,
-          paymentMethod: request.data.paymentMethod.type,
+          paymentMethod: responseData?.transaction?.payment_type ?? "",
           transaction: {
             type: "Authorization",
             amount: ctPayment.amountPlanned,
             interactionId: pspReference,
-            state: this.convertPaymentResultCode(request.data.paymentOutcome),
+            state: 'Success',
           },
         });
 
