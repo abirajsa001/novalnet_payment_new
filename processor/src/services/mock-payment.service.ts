@@ -597,6 +597,10 @@ export class MockPaymentService extends AbstractPaymentService {
       paymentMethodInfo: {
         paymentInterface,
       },
+      paymentStatus: {
+        interfaceCode: 'test',
+        interfaceText: 'demo',
+      },
       ...(ctCart.customerId && {
         customer: { typeId: "customer", id: ctCart.customerId },
       }),
