@@ -325,7 +325,7 @@ export class MockPaymentService extends AbstractPaymentService {
     }
     const paymentRef = responseData?.custom?.paymentRef ?? "";
 
-    const  Response = JSON.parse(responseString);
+    const  Response = JSON.parse(responseData);
     const transactionInfo = `Novalnet Transaction ID: ${responseData?.transaction?.tid ?? "N/A"}\nTest Order`;
 
     log.info("Payment updated with Novalnet details:");
