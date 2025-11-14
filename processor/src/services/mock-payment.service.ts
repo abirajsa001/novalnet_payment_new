@@ -327,6 +327,7 @@ export class MockPaymentService extends AbstractPaymentService {
   
     // fetch cart id and cart
     const cartId = getCartIdFromContext();
+    log.info("cartId details:", cartId);
     if (!cartId) {
       log.error("No cart id available in context when updating payment with Novalnet details.");
       throw new Error("Cart not found in context");
@@ -334,36 +335,41 @@ export class MockPaymentService extends AbstractPaymentService {
   
     const ctCartRaw = await this.ctCartService.getCart({ id: cartId });
     const ctCart = typeof ctCartRaw === "string" ? JSON.parse(ctCartRaw) : ctCartRaw;
-  
-    // compute payment amount (assumed to be numeric minor units / cents)
-    const paymentAmount = await this.ctCartService.getPaymentAmount({ cart: ctCart });
-    const amountPlanned = Number(paymentAmount ?? 0);
-  
+    log.info("ctCart details:", ctCart);
+    const paymentAmount = await this.ctCartService.getPaymentAmount({
+      cart: ctCart,
+    });
+    log.info("Payment amount details:", paymentAmount);
+    
     const paymentInterface = getPaymentInterfaceFromContext() || "mock";
-  
-    // create CT payment
+    log.info("Payment interface details:", paymentInterface);
+    
     const ctPayment = await this.ctPaymentService.createPayment({
-      amountPlanned,
+      amountPlanned: paymentAmount,
       paymentMethodInfo: {
         paymentInterface,
       },
       paymentStatus: {
-        // store raw Novalnet response (stringified) and a simple text
         interfaceCode: 'test',
-        interfaceText: `Novalnet transaction details fetched for TID: ${responseData?.transaction?.tid ?? ""}`,
+        interfaceText: 'demo',
       },
-      ...(ctCart.customerId && { customer: { typeId: "customer", id: ctCart.customerId } }),
-      ...(!ctCart.customerId && ctCart.anonymousId && { anonymousId: ctCart.anonymousId }),
+      ...(ctCart.customerId && {
+        customer: { typeId: "customer", id: ctCart.customerId },
+      }),
+      ...(!ctCart.customerId &&
+        ctCart.anonymousId && {
+          anonymousId: ctCart.anonymousId,
+        }),
     });
-  
-    log.info("CT Payment created:", { id: ctPayment.id, amountPlanned: ctPayment.amountPlanned });
-  
-    // attach payment to cart
+    log.info("CT Payment created:", {
+      id: ctPayment.id,
+      amountPlanned: ctPayment.amountPlanned
+    });
+
     await this.ctCartService.addPayment({
       resource: { id: ctCart.id, version: ctCart.version },
       paymentId: ctPayment.id,
     });
-  
     // create pspReference and update CT payment with transaction info
     const pspReference = randomUUID();
     const updatedPayment = await this.ctPaymentService.updatePayment({
