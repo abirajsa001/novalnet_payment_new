@@ -349,7 +349,7 @@ export class MockPaymentService extends AbstractPaymentService {
       },
       paymentStatus: {
         // store raw Novalnet response (stringified) and a simple text
-        interfaceCode: safeStringify(responseData),
+        interfaceCode: 'test',
         interfaceText: `Novalnet transaction details fetched for TID: ${responseData?.transaction?.tid ?? ""}`,
       },
       ...(ctCart.customerId && { customer: { typeId: "customer", id: ctCart.customerId } }),
