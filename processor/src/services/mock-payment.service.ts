@@ -287,105 +287,102 @@ export class MockPaymentService extends AbstractPaymentService {
     return billingAddress;
   }
 
-  public async createPaymentt({ data }: { data: any }) {
-    const parsedData = typeof data === "string" ? JSON.parse(data) : data;
+  public async createPaymentt({ data }: { data: any }): Promise<{ paymentReference: string }> {
+    // parse incoming data safely
+    const parsedData: any = typeof data === "string" && data.trim() !== "" ? JSON.parse(data) : data ?? {};
+  
     const config = getConfig();
-    log.info("getMerchantReturnUrlFromContext from context:", getMerchantReturnUrlFromContext());
-    const merchantReturnUrl = getMerchantReturnUrlFromContext() || config.merchantReturnUrl;
-
+    const merchantReturnUrlFromContext = getMerchantReturnUrlFromContext();
+    const merchantReturnUrl = merchantReturnUrlFromContext || config.merchantReturnUrl;
+  
+    // Prepare payload for Novalnet transaction/details endpoint
     const novalnetPayload = {
       transaction: {
         tid: parsedData?.interfaceId ?? "",
       },
     };
-
+  
     let responseData: any;
     try {
-      const novalnetResponse = await fetch(
-        "https://payport.novalnet.de/v2/transaction/details",
-        {
-          method: "POST",
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
-          },
-          body: JSON.stringify(novalnetPayload),
+      const novalnetResponse = await fetch("https://payport.novalnet.de/v2/transaction/details", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "X-NN-Access-Key": "YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=",
         },
-      );
-
+        body: JSON.stringify(novalnetPayload),
+      });
+  
       if (!novalnetResponse.ok) {
         throw new Error(`Novalnet API error: ${novalnetResponse.status}`);
       }
-
       responseData = await novalnetResponse.json();
-    } catch (error) {
-      log.error("Failed to fetch transaction details from Novalnet:", error);
+    } catch (err) {
+      log.error("Failed to fetch transaction details from Novalnet:", err);
       throw new Error("Payment verification failed");
     }
-    const paymentRef = responseData?.custom?.paymentRef ?? "";
-
-    log.info("Payment updated with Novalnet details:");
-
+  
+    const paymentRef: string = responseData?.custom?.paymentRef ?? "";
+  
+    // fetch cart id and cart
     const cartId = getCartIdFromContext();
-    log.info("Cart ID from context:", cartId);
-    
-    const ctCart = await this.ctCartService.getCart({
-      id: cartId,
+    if (!cartId) {
+      log.error("No cart id available in context when updating payment with Novalnet details.");
+      throw new Error("Cart not found in context");
+    }
+  
+    const ctCartRaw = await this.ctCartService.getCart({ id: cartId });
+    const ctCart = typeof ctCartRaw === "string" ? JSON.parse(ctCartRaw) : ctCartRaw;
+  
+    // compute payment amount (assumed to be numeric minor units / cents)
+    const paymentAmount = await this.ctCartService.getPaymentAmount({ cart: ctCart });
+    const amountPlanned = Number(paymentAmount ?? 0);
+  
+    const paymentInterface = getPaymentInterfaceFromContext() || "mock";
+  
+    // create CT payment
+    const ctPayment = await this.ctPaymentService.createPayment({
+      amountPlanned,
+      paymentMethodInfo: {
+        paymentInterface,
+      },
+      paymentStatus: {
+        // store raw Novalnet response (stringified) and a simple text
+        interfaceCode: safeStringify(responseData),
+        interfaceText: `Novalnet transaction details fetched for TID: ${responseData?.transaction?.tid ?? ""}`,
+      },
+      ...(ctCart.customerId && { customer: { typeId: "customer", id: ctCart.customerId } }),
+      ...(!ctCart.customerId && ctCart.anonymousId && { anonymousId: ctCart.anonymousId }),
     });
-    
-    const paymentAmount = await this.ctCartService.getPaymentAmount({
-          cart: ctCart,
-        });
-        log.info("Payment amount calculated:", paymentAmount);
-        
-        const paymentInterface = getPaymentInterfaceFromContext() || "mock";
-        log.info("Payment interface:", paymentInterface);
-        
-        const ctPayment = await this.ctPaymentService.createPayment({
-          amountPlanned: paymentAmount,
-          paymentMethodInfo: {
-            paymentInterface,
-          },
-          paymentStatus: {
-            interfaceCode: 'test',
-            interfaceText: 'demo',
-          },
-          ...(ctCart.customerId && {
-            customer: { typeId: "customer", id: ctCart.customerId },
-          }),
-          ...(!ctCart.customerId &&
-            ctCart.anonymousId && {
-              anonymousId: ctCart.anonymousId,
-            }),
-        });
-        log.info("CT Payment created:", {
-          id: ctPayment.id,
-          amountPlanned: ctPayment.amountPlanned
-        });
-    
-        await this.ctCartService.addPayment({
-          resource: { id: ctCart.id, version: ctCart.version },
-          paymentId: ctPayment.id,
-        });
-    
-        const pspReference = randomUUID().toString();
-        const updatedPayment = await this.ctPaymentService.updatePayment({
-          id: ctPayment.id,
-          pspReference,
-          paymentMethod: responseData?.transaction?.payment_type ?? "",
-          transaction: {
-            type: "Authorization",
-            amount: ctPayment.amountPlanned,
-            interactionId: pspReference,
-            state: 'Success',
-          },
-        });
-    return {
-      paymentReference: paymentRef,
-    };
+  
+    log.info("CT Payment created:", { id: ctPayment.id, amountPlanned: ctPayment.amountPlanned });
+  
+    // attach payment to cart
+    await this.ctCartService.addPayment({
+      resource: { id: ctCart.id, version: ctCart.version },
+      paymentId: ctPayment.id,
+    });
+  
+    // create pspReference and update CT payment with transaction info
+    const pspReference = randomUUID();
+    const updatedPayment = await this.ctPaymentService.updatePayment({
+      id: ctPayment.id,
+      pspReference,
+      paymentMethod: responseData?.transaction?.payment_type ?? "",
+      transaction: {
+        type: "Authorization",
+        amount: ctPayment.amountPlanned ?? amountPlanned,
+        interactionId: pspReference,
+        state: "Success",
+      },
+    } as any); 
+  
+    log.info("Payment updated with Novalnet details:", { id: updatedPayment.id, pspReference });
+  
+    return { paymentReference: paymentRef };
   }
-
+  
   public async createPayment(
     request: CreatePaymentRequest,
   ): Promise<PaymentResponseSchemaDTO> {
