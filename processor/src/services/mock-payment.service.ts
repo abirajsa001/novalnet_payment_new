@@ -379,7 +379,7 @@ export class MockPaymentService extends AbstractPaymentService {
       paymentMethod: responseData?.transaction?.payment_type ?? "",
       transaction: {
         type: "Authorization",
-        amount: ctPayment.amountPlanned ?? amountPlanned,
+        amount: ctPayment.amountPlanned,
         interactionId: pspReference,
         state: "Success",
       },
