@@ -332,11 +332,8 @@ export class MockPaymentService extends AbstractPaymentService {
     log.info("paymentRef details:", paymentRef);
     // fetch cart id and cart
 
-    const ctCarts = await this.ctCartService.getCart({
-      id: getCartIdFromContext(),
-    });
-    log.info("ctCarts detailss:", ctCarts);
-    const cartId = await this.ctid(ctCarts);
+    const cartId = parsedData?.ctId;
+
     log.info("cartId detailss:", cartId);
     if (!cartId) {
       log.error("No cart id available in context when updating payment with Novalnet detailss.");
@@ -706,7 +703,7 @@ export class MockPaymentService extends AbstractPaymentService {
 
     const url = new URL("/success", processorURL);
     url.searchParams.append("paymentReference", paymentRef);
-    url.searchParams.append("ctsid", sessionId);
+    url.searchParams.append("ctsid", paymentCartId);
     url.searchParams.append("orderNumber", orderNumber);
     const returnUrl = url.toString();
     
