@@ -287,6 +287,11 @@ export class MockPaymentService extends AbstractPaymentService {
     return billingAddress;
   }
 
+  public async ctid(cart: Cart) {
+    const cartInfoId = cart.id;
+    return cartInfoId;
+  }
+
   public async createPaymentt({ data }: { data: any }): Promise<{ paymentReference: string }> {
     // parse incoming data safely
     const parsedData: any = typeof data === "string" && data.trim() !== "" ? JSON.parse(data) : data ?? {};
@@ -326,8 +331,13 @@ export class MockPaymentService extends AbstractPaymentService {
     const paymentRef: string = responseData?.custom?.paymentRef ?? "";
     log.info("paymentRef details:", paymentRef);
     // fetch cart id and cart
-    const cartId = getCartIdFromContext();
-    log.info("cartId details:", cartId);
+
+    const ctCarts = await this.ctCartService.getCart({
+      id: getCartIdFromContext(),
+    });
+    log.info("ctCarts detailss:", ctCarts);
+    const cartId = await this.ctid(ctCarts);
+    log.info("cartId detailss:", cartId);
     if (!cartId) {
       log.error("No cart id available in context when updating payment with Novalnet detailss.");
       throw new Error("Cart not found in context");
