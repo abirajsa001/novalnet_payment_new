@@ -179,7 +179,7 @@ export const paymentRoutes = async (
           const result = await opts.paymentService.createPaymentt({
             data: {
               interfaceId: query.tid,
-              ctId: ctsid,
+              ctId: query.ctsid,
             },
           }); 
 
