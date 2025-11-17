@@ -12,7 +12,6 @@ import {
   PaymentRequestSchemaDTO,
 } from "../../../dtos/mock-payment.dto";
 import { BaseOptions } from "../../../payment-enabler/payment-enabler-mock";
-import { checkoutFlow } from '@commercetools/checkout-browser-sdk';
 
 export class MultibancoBuilder implements PaymentComponentBuilder {
   public componentHasSubmit = true;
@@ -22,7 +21,7 @@ export class MultibancoBuilder implements PaymentComponentBuilder {
     return new Multibanco(this.baseOptions, config);
   }
 }
- 
+
 export class Multibanco extends BaseComponent {
   private showPayButton: boolean;
 
@@ -47,23 +46,21 @@ export class Multibanco extends BaseComponent {
   }
 
   async submit() {
+    // here we would call the SDK to submit the payment
     this.sdk.init({ environment: this.environment });
-    console.log('=== MULTIBANCO ENABLER SUBMIT START ===');
-    console.log('Environment:', this.environment);
-    console.log('Processor URL:', this.processorUrl);
-    console.log('Session ID:', this.sessionId);
-
+    console.log('submit-triggered');
     try {
+      // start original
+ 
       const requestData: PaymentRequestSchemaDTO = {
         paymentMethod: {
-          type: 'MULTIBANCO',
+          type: "MULTIBANCO",
         },
         paymentOutcome: PaymentOutcome.AUTHORIZED,
       };
-      console.log('Request data:', JSON.stringify(requestData, null, 2));
-	  console.log('Payment Method:', this.paymentMethod);
-	  
-      console.log('Making API call to:', this.processorUrl + "/payment");
+      console.log('requestData');
+    console.log(requestData);
+     
       const response = await fetch(this.processorUrl + "/payment", {
         method: "POST",
         headers: {
@@ -72,49 +69,31 @@ export class Multibanco extends BaseComponent {
         },
         body: JSON.stringify(requestData),
       });
-
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('HTTP error response:', errorText);
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
+      console.log('responseData-newdata');
+      console.log(response);
+      console.log(response);
       const data = await response.json();
-      console.log('=== PAYMENT RESPONSE ===:', JSON.stringify(data, null, 2));
-      console.log('commercetools redirect url', data.txnSecret);
-      window.location.href = data.txnSecret;
-      
-      // if (data.paymentReference && data.paymentReference !== 'null') {
-      //   console.log('Initializing Novalnet child window with txn_secret:', data.txnSecret);
-      //   console.log('commercetools payment ID:', data.paymentReference);
-      //   this.initializeNovalnetChildWindow(data.txnSecret, data.paymentReference);
-      // } else {
-      //   console.error('No valid payment reference received:', data.paymentReference);
-      //   this.onError("Payment initialization failed. Please try again.");
-      // }
-
+      console.log(data);
+      if (data.paymentReference) {
+        this.onComplete &&
+          this.onComplete({
+            isSuccess: true,
+            paymentReference: data.paymentReference,
+          });
+      } else {
+        this.onError("Some error occurred. Please try again.");
+      }
     } catch (e) {
-      console.error('=== PAYMENT SUBMISSION ERROR ===:', e);
-      console.error('Error details:', {
-        message: e.message,
-        stack: e.stack,
-        name: e.name
-      });
       this.onError("Some error occurred. Please try again.");
     }
   }
-
-
 
   private _getTemplate() {
     return this.showPayButton
       ? `
     <div class="${styles.wrapper}">
       <p>Pay easily with Multibanco and transfer the shopping amount within the specified date.</p>
-      <button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="purchaseOrderForm-paymentButton">Pay Now</button>
+      <button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="purchaseOrderForm-paymentButton">Pay</button>
     </div>
     `
       : "";
