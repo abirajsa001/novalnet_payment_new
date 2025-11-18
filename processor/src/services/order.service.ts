@@ -97,12 +97,13 @@ export async function getOrderByOrderNumber(orderNumber: string): Promise<Order 
     const results = response?.body?.results ?? [];
     console.log('Search results length:', Array.isArray(results) ? results.length : 'unknown results length');
 
-    if (!Array.isArray(results) || results.length === 0) {
-      console.log(`Order not found for orderNumber=${trimmed}`);
-      return null;
-    }
+    // if (!Array.isArray(results) || results.length === 0) {
+    //   console.log(`Order not found for orderNumber=${trimmed}`);
+    //   return null;
+    // }
 
-    return results[0] as Order;
+    // return results[0] as Order;
+    return response.body;
   } catch (err: any) {
     console.log('Error fetching order by orderNumber:', err?.message ?? err);
     if (err?.response?.body) console.log('Error body snippet:', safeSnippet(err.response.body));
