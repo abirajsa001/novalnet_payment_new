@@ -30,15 +30,18 @@
 
 
 import type { Order } from '@commercetools/platform-sdk';
+import { getApiRoot } from '../utils/ct-client.js';
 
 export async function getOrderByOrderNumber(orderNumber: string): Promise<Order | null> {
   try {
-    const { getApiRoot } = await import('../utils/ct-client.js');
     const apiRoot = getApiRoot();
-    console.log('apiRoot response (order found):', apiRoot);
-    // escape quotes inside orderNumber to avoid breaking the where clause
+
+    // very small, safe log — avoid printing large SDK objects
+    console.log('Using CT projectKey:', (apiRoot as any)?.projectKey ?? 'unknown');
+
+    // escape quotes inside orderNumber
     const safeOrderNumber = orderNumber.replace(/"/g, '\\"');
-    console.log('safeOrderNumber API response (order found):', safeOrderNumber);
+
     const response = await apiRoot
       .orders()
       .get({
@@ -48,21 +51,21 @@ export async function getOrderByOrderNumber(orderNumber: string): Promise<Order 
         },
       })
       .execute();
-      console.log('response API response (order found):', response);
-    // The API returns results[] for search queries
+
     const results = response?.body?.results ?? [];
     if (results.length === 0) {
       console.log(`Order not found for orderNumber=${orderNumber}`);
       return null;
     }
 
-    console.log('Mock API response (order found):', results[0]);
+    console.log('Order found: id=', results[0].id, 'orderNumber=', results[0].orderNumber);
     return results[0] as Order;
   } catch (error: any) {
     console.log('Error fetching order (mock):', error?.message ?? error);
     return null;
   }
 }
+
 
 export async function getOrderIdFromOrderNumber(orderNumber: string): Promise<string | null> {
   const order = await getOrderByOrderNumber(orderNumber);
