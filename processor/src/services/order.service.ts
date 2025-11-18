@@ -77,7 +77,7 @@ function safeSnippet(obj: any, max = 800) {
 /**
  * Search for an order by its orderNumber. Returns the Order or null if not found.
  */
-export async function getOrderByOrderNumber(orderNumber: string): Promise<Order | null> {
+export async function getOrderByOrderNumber(orderNumber: string): Promise<any | null> {
   const raw = (orderNumber ?? '').toString();
   const trimmed = raw.trim();
   if (!trimmed) {
