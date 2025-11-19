@@ -89,7 +89,6 @@ export async function getOrderByOrderNumber(orderNumber: string): Promise<any | 
     // execute search
     const response = await apiRoot.orders().get({ queryArgs: { where, limit: 1 } }).execute();
 
-
     // results is an array under response.body.results
     const results = response?.body?.results ?? [];
     console.log('Search results length:', Array.isArray(results) ? results.length : 'unknown results length');
