@@ -89,7 +89,6 @@ export async function getOrderByOrderNumber(orderNumber: string): Promise<Order 
     // execute search
     const response = await apiRoot.orders().get({ queryArgs: { where, limit: 1 } }).execute();
 
-    console.log('CT response status:', (response as any).statusCode ?? (response as any).status ?? 'unknown response status');
 
     // results is an array under response.body.results
     const results = response?.body?.results ?? [];
@@ -99,8 +98,6 @@ export async function getOrderByOrderNumber(orderNumber: string): Promise<Order 
     return Array.isArray(results) && results.length > 0 ? (results[0] as Order) : null;
   } catch (err: any) {
     console.log('Error fetching order by orderNumber:', err?.message ?? err);
-    if (err?.response?.body) console.log('Error body snippet:', safeSnippet(err.response.body));
-    return null;
   }
 }
 
