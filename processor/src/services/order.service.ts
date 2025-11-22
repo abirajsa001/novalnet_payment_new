@@ -89,7 +89,7 @@ export async function getOrderByOrderNumber(orderNumber: string): Promise<Order 
       // if a 404 or empty body — fall back to the query below
     } catch (innerErr) {
       // some SDKs throw for 404 — log and fall back
-      console.warn('[CT] withOrderNumber threw error (will try query fallback):', innerErr?.message ?? innerErr);
+      console.warn('[CT] withOrderNumber threw error (will try query fallback):');
     }
 
     // 2) Fallback: query orders with where clause (returns query result with results[])
@@ -106,7 +106,7 @@ export async function getOrderByOrderNumber(orderNumber: string): Promise<Order 
         return results[0] as Order;
       }
     } catch (queryErr) {
-      console.error('[CT] query fallback error:', queryErr?.message ?? queryErr);
+      console.error('[CT] query fallback error:');
     }
 
     // Not found
