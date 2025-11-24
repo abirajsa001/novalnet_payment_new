@@ -98,7 +98,7 @@ export async function getOrderByOrderNumber(orderNumber: string): Promise<Order 
         queryArgs: { where: `orderNumber="${orderNumber}"` },
       }).execute();
 
-      console.log('[CT] query status:', q?.statusCode);
+      console.log(' [CT] query status:', q?.statusCode);
       console.log('[CT] query body:', JSON.stringify(q?.body ?? {}, null, 2));
 
       const results = q?.body?.results;
