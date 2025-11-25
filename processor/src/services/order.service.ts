@@ -1,90 +1,52 @@
-//  import { getApiRoot } from '../utils/ct-client';
-// import { Order } from '@commercetools/platform-sdk';
+import {
+  ClientBuilder,
+  type AuthMiddlewareOptions,
+  type HttpMiddlewareOptions,
+} from '@commercetools/sdk-client-v2';
+import {
+  createApiBuilderFromCtpClient,
+} from '@commercetools/platform-sdk';
 
-// export async function getOrderByOrderNumber(orderNumber: string): Promise<any | null> {
-//   try {
-//     // Lazy import to prevent bundler from resolving SDK during build
-//     const { getApiRoot } = await import('../utils/ct-client.js');
-//     const apiRoot = getApiRoot();
+const authMiddlewareOptions: AuthMiddlewareOptions = {
+  host: 'https://auth.europe-west1.gcp.commercetools.com',
+  projectKey: 'commercekey',
+  credentials: {
+    clientId: 'zzykDtn0B_bBov_EVqk0Hvo-',
+    clientSecret: '9vrhw1oyV27jiLvlOvQJpR__UVhd6ETy',
+  },
+  
+};
 
-//     const response = await apiRoot
-//       .orders()
-//       .withOrderNumber({ orderNumber })
-//       .get()
-//       .execute();
+const httpMiddlewareOptions: HttpMiddlewareOptions = {
+  host: 'https://api.europe-west1.gcp.commercetools.com',
+};
 
-//     return response.body;
-//   } catch (error: any) {
-//     // Optional: handle specific 404 cases
-//     if (error?.statusCode === 404) return null;
-//     console.error('Error fetching order:', error);
-//     return null;
-//   }
-// }
+const ctpClient = new ClientBuilder()
+  .withClientCredentialsFlow(authMiddlewareOptions)
+  .withHttpMiddleware(httpMiddlewareOptions)
+  .build();
 
-// export async function getOrderIdFromOrderNumber(orderNumber: string): Promise<string | null> {
-//   const order = await getOrderByOrderNumber(orderNumber);
-//   return order?.id ?? null;
-// }
-// src/services/order-service.ts (or your current file)
+const apiRoot = createApiBuilderFromCtpClient(ctpClient)
+  .withProjectKey({ projectKey: process.env.CTP_PROJECT_KEY! });
 
-
-import type { Order } from '@commercetools/platform-sdk';
-
-export async function getOrderByOrderNumber(orderNumber: string): Promise<any | null> {
+export async function getOrderIdByOrderNumber(orderNumber: string) {
   try {
-    const { getApiRoot } = await import('../utils/ct-client.js');
-    const apiRoot = getApiRoot();
-
-    console.log('Searching for orderNumber:', orderNumber);
-
-    // First check what orders exist
-    const allOrders = await apiRoot
-      .orders()
-      .get({
-        queryArgs: {
-          limit: 5,
-          sort: 'createdAt desc'
-        }
-      })
-      .execute();
-    
-    console.log('Recent orders:', allOrders.body.results.map(o => ({ 
-      id: o.id, 
-      orderNumber: o.orderNumber 
-    })));
-
     const response = await apiRoot
       .orders()
       .get({
         queryArgs: {
-          where: `orderNumber="${orderNumber}"`
-        }
+          where: `orderNumber="${orderNumber}"`,
+        },
       })
       .execute();
 
     if (response.body.results.length === 0) {
-      console.log('Order not found, creating mock order');
-      
-      // Create a mock order
-      const mockOrder = {
-        id: `order-${Date.now()}`,
-        orderNumber: orderNumber,
-        totalPrice: { centAmount: 1000, currencyCode: 'EUR' },
-        orderState: 'Open'
-      };
-      
-      return mockOrder;
+      return null; // Not found
     }
 
-    return response.body.results[0];
-  } catch (error: any) {
-    console.error('Error fetching order:', error);
-    return null;
+    return response.body.results[0].id;
+  } catch (error) {
+    console.error("Error fetching order:", error);
+    throw error;
   }
-}
-
-export async function getOrderIdFromOrderNumber(orderNumber: string): Promise<string | null> {
-  const order = await getOrderByOrderNumber(orderNumber);
-  return order?.id ?? null;
 }
