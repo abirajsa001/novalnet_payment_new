@@ -13,12 +13,20 @@ export async function getOrderByOrderNumber(orderNumber: string): Promise<Order 
 
   try {
     const response = await apiRoot
-      .orders()
-      .withOrderNumber({ orderNumber: cleaned })
-      .get()
-      .execute();
-
-    return response.body as Order;
+    .orders()
+    .get({
+      queryArgs: {
+        where: `orderNumber="${cleaned}"`
+      }
+    })
+    .execute();
+  
+  if (response.body.results.length === 0) {
+    throw new Error(`Order not found: ${cleaned}`);
+  }
+  
+  const order = response.body.results[0];
+  return order;
   } catch (error: any) {
     const status =
       error?.statusCode ??
