@@ -39,7 +39,7 @@ export async function getOrderIdByOrderNumber(orderNumber: string) {
         },
       })
       .execute();
-
+      console.log("response fetching order:", response);
     if (response.body.results.length === 0) {
       return null; // Not found
     }
