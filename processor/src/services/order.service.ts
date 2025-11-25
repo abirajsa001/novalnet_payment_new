@@ -29,7 +29,7 @@ const ctpClient = new ClientBuilder()
 const apiRoot = createApiBuilderFromCtpClient(ctpClient)
   .withProjectKey({ projectKey: process.env.CTP_PROJECT_KEY! });
 
-export async function getOrderIdByOrderNumber(orderNumber: string) {
+export async function getOrderIdFromOrderNumber(orderNumber: string) {
   try {
     const response = await apiRoot
       .orders()
