@@ -154,6 +154,7 @@ export const paymentRoutes = async (
       paymentReference?: string;
       ctsid?: string;
       orderNumber?: string;
+      ctPaymentId?: string;
     };
 
     const accessKey = String(getConfig()?.novalnetPublicKey ?? "");
@@ -180,6 +181,7 @@ export const paymentRoutes = async (
           const result = await opts.paymentService.createPaymentt({
             data: {
               interfaceId: query.tid,
+              ctPaymentId: query.ctPaymentId,
             },
           }); 
           

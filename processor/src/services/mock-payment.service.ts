@@ -328,7 +328,21 @@ export class MockPaymentService extends AbstractPaymentService {
       throw new Error("Payment verification failed");
     }
     const paymentRef = responseData?.custom?.paymentRef ?? "";
-
+    const transactionComments = `Novalnet Transaction ID: ${responseData?.transaction?.tid ?? "N/A"}\nPayment Type: ${responseData?.transaction?.payment_type ?? "N/A"}\nStatus: ${responseData?.result?.status ?? "N/A"}`;
+    const updatedPayment = await this.ctPaymentService.updatePayment({
+      id: parsedData?.ctPaymentId,
+      transaction: {
+      custom: {
+        type: {
+        typeId: "type",
+        key: "novalnet-transaction-comments",
+        },
+        fields: {
+        transactionComments,
+        },
+      },
+      } as unknown as any,
+    });
     log.info("Payment updated with Novalnet details:");
 
     return {
@@ -631,11 +645,13 @@ if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
     const paymentRef = updatedPayment.id;
     const paymentCartId = ctCart.id;
     const orderNumber = getFutureOrderNumberFromContext() ?? "";
+    const ctPaymentId = ctPayment.id;
 
     const url = new URL("/success", processorURL);
     url.searchParams.append("paymentReference", paymentRef);
     url.searchParams.append("ctsid", sessionId);
     url.searchParams.append("orderNumber", orderNumber);
+    url.searchParams.append("ctPaymentId", ctPaymentId);
     const returnUrl = url.toString();
     
     const ReturnurlContext = getMerchantReturnUrlFromContext();
