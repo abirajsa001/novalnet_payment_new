@@ -48,7 +48,7 @@ import {
 import { log } from "../libs/logger";
 import * as Context from "../libs/fastify/context/context";
 import { ExtendedUpdatePayment } from './types/payment-extension';
-
+import { createTransactionCommentsType } from '../utils/custom-fields';
 
 type NovalnetConfig = {
   testMode: string;
@@ -345,7 +345,7 @@ export class MockPaymentService extends AbstractPaymentService {
       type,
       config,
     );
-
+    await createTransactionCommentsType();
     const ctCart = await this.ctCartService.getCart({
       id: getCartIdFromContext(),
     });
@@ -490,10 +490,6 @@ if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
       paymentMethodInfo: {
         paymentInterface: getPaymentInterfaceFromContext() || "mock",
       },
-      paymentStatus: {
-        interfaceCode: JSON.stringify(parsedResponse),
-        interfaceText: transactiondetails + "\n" + bankDetails,
-      },
       ...(ctCart.customerId && {
         customer: { typeId: "customer", id: ctCart.customerId },
       }),
@@ -519,7 +515,16 @@ if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
         amount: ctPayment.amountPlanned,
         interactionId: pspReference,
         state: this.convertPaymentResultCode(request.data.paymentOutcome),
-      },
+        custom: {
+          type: {
+            typeId: "type",
+            key: "novalnet-transaction-comments",
+          },
+          fields: {
+            transactiondetails,
+          },
+        },
+      } as unknown as any,
     });
   
     return {
