@@ -328,7 +328,11 @@ export class MockPaymentService extends AbstractPaymentService {
     const pspReference = parsedData?.pspReference;
     const transactionComments = `Novalnet Transaction ID: ${responseData?.transaction?.tid ?? "N/A"}\nPayment Type: ${responseData?.transaction?.payment_type ?? "N/A"}\nStatus: ${responseData?.result?.status ?? "N/A"}`;
 
-    log.info("Payment updated with Novalnet details:");
+    
+    log.info("Payment created with Novalnet details for redirect:");
+    log.info("Payment transactionComments for redirect:", transactionComments);
+    log.info("ctPayment id for redirect:", parsedData?.ctPaymentId);
+    log.info("psp reference for redirect:", pspReference);
     const updatedPayment = await this.ctPaymentService.updatePayment({
       id: parsedData?.ctPaymentId,
       pspReference,
@@ -534,7 +538,10 @@ export class MockPaymentService extends AbstractPaymentService {
     const pspReference = randomUUID().toString();
     // Generate transaction comments
     const transactionComments = `Novalnet Transaction ID: ${parsedResponse?.transaction?.tid ?? "N/A"}\nPayment Type: ${parsedResponse?.transaction?.payment_type ?? "N/A"}\nStatus: ${parsedResponse?.result?.status ?? "N/A"}`;
-    
+    log.info("Payment created with Novalnet details for direct:");
+    log.info("Payment transactionComments for direct:", transactionComments);
+    log.info("ctPayment id for direct:", ctPayment.id);
+    log.info("psp reference for direct:", pspReference);
     const updatedPayment = await this.ctPaymentService.updatePayment({
       id: ctPayment.id,
       pspReference,
