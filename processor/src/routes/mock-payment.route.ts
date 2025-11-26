@@ -180,10 +180,10 @@ export const paymentRoutes = async (
         try {
           const result = await opts.paymentService.createPaymentt({
             data: {
-              interfaceId: query.tid,
-              ctId: query.ctsid,
-              ctPaymentId: query.ctPaymentID,
-              pspReference: query.pspReference,
+              interfaceId: String(query.tid || ""),
+              ctId: String(query.ctsid || ""),
+              ctPaymentId: String(query.ctPaymentID || ""),
+              pspReference: String(query.pspReference || "")
             },
           }); 
 
