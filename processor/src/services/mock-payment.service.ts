@@ -54,9 +54,6 @@ type NovalnetConfig = {
   testMode: string;
   paymentAction: string;
   dueDate: string;
-  minimumAmount: string;
-  enforce3d: string;
-  displayInline: string;
 };
 
 
@@ -67,12 +64,11 @@ function getNovalnetConfigValues(
 ): NovalnetConfig {
   const upperType = type.toUpperCase();
   return {
-    testMode: String(config?.[`novalnet_${upperType}_TestMode`]),
-    paymentAction: String(config?.[`novalnet_${upperType}_PaymentAction`]),
-    dueDate: String(config?.[`novalnet_${upperType}_DueDate`]),
-    minimumAmount: String(config?.[`novalnet_${upperType}_MinimumAmount`]),
-    enforce3d: String(config?.[`novalnet_${upperType}_Enforce3d`]),
-    displayInline: String(config?.[`novalnet_${upperType}_DisplayInline`]),
+    testMode: String(config?.[`novalnet_${upperType}_TestMode`] ?? "0"),
+    paymentAction: String(
+      config?.[`novalnet_${upperType}_PaymentAction`] ?? "payment",
+    ),
+    dueDate: String(config?.[`novalnet_${upperType}_DueDate`] ?? "3"),
   };
 }
 
@@ -294,6 +290,7 @@ export class MockPaymentService extends AbstractPaymentService {
   public async createPaymentt({ data }: { data: any }) {
     const parsedData = typeof data === "string" ? JSON.parse(data) : data;
     const config = getConfig();
+    await createTransactionCommentsType();
     log.info("getMerchantReturnUrlFromContext from context:", getMerchantReturnUrlFromContext());
     const merchantReturnUrl = getMerchantReturnUrlFromContext() || config.merchantReturnUrl;
 
@@ -328,9 +325,13 @@ export class MockPaymentService extends AbstractPaymentService {
       throw new Error("Payment verification failed");
     }
     const paymentRef = responseData?.custom?.paymentRef ?? "";
+    const pspReference = parsedData?.pspReference;
     const transactionComments = `Novalnet Transaction ID: ${responseData?.transaction?.tid ?? "N/A"}\nPayment Type: ${responseData?.transaction?.payment_type ?? "N/A"}\nStatus: ${responseData?.result?.status ?? "N/A"}`;
+
+    log.info("Payment updated with Novalnet details:");
     const updatedPayment = await this.ctPaymentService.updatePayment({
       id: parsedData?.ctPaymentId,
+      pspReference,
       transaction: {
       custom: {
         type: {
@@ -343,19 +344,18 @@ export class MockPaymentService extends AbstractPaymentService {
       },
       } as unknown as any,
     });
-    log.info("Payment updated with Novalnet details:");
 
     return {
       paymentReference: paymentRef,
     };
   }
-
+  
   public async createPayment(
     request: CreatePaymentRequest,
   ): Promise<PaymentResponseSchemaDTO> {
     const type = String(request.data?.paymentMethod?.type ?? "INVOICE");
     const config = getConfig();
-    const { testMode, paymentAction, dueDate, minimumAmount, enforce3d, displayInline } = getNovalnetConfigValues(
+    const { testMode, paymentAction, dueDate } = getNovalnetConfigValues(
       type,
       config,
     );
@@ -382,30 +382,48 @@ export class MockPaymentService extends AbstractPaymentService {
       transaction.due_date = dueDateValue;
     }
 
-    if (String(request.data.paymentMethod.type).toUpperCase() ===
-    "DIRECT_DEBIT_SEPA") {
-    transaction.payment_data = {
-        account_holder: String(request.data.paymentMethod.poNumber),
-        iban: String(request.data.paymentMethod.invoiceMemo),
-    };
-}
-if (String(request.data.paymentMethod.type).toUpperCase() ===
-    "DIRECT_DEBIT_ACH") {
-    transaction.payment_data = {
-        account_holder: String(request.data.paymentMethod.accHolder),
-        account_number: String(request.data.paymentMethod.poNumber),
-        routing_number: String(request.data.paymentMethod.invoiceMemo),
-    };
-}
-if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
-    if(enforce3d == '1') {
-        transaction.enforce_3d = 1
+    if (
+      String(request.data.paymentMethod.type).toUpperCase() ===
+      "DIRECT_DEBIT_SEPA"
+    ) {
+      transaction.create_token = 1;
+      transaction.payment_data = {
+        account_holder: String(
+          request.data.paymentMethod.poNumber ?? "Norbert Maier",
+        ),
+        iban: String(
+          request.data.paymentMethod.invoiceMemo ?? "DE24300209002411761956",
+        ),
+      };
     }
-    transaction.payment_data = {
-        pan_hash: String(request.data.paymentMethod.panHash),
-        unique_id: String(request.data.paymentMethod.uniqueId),
-    };
-}
+
+    if (
+      String(request.data.paymentMethod.type).toUpperCase() ===
+      "DIRECT_DEBIT_ACH"
+    ) {
+      transaction.create_token = 1;
+      transaction.payment_data = {
+        account_holder: String(
+          request.data.paymentMethod.accHolder ?? "Norbert Maier",
+        ),
+        account_number: String(
+          request.data.paymentMethod.poNumber ?? "123456789",
+        ),
+        routing_number: String(
+          request.data.paymentMethod.invoiceMemo ?? "031200730",
+        ),
+      };
+    }
+    
+    if (
+      String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD"
+    ) {
+      transaction.payment_data = {
+        pan_hash: String(request.data.paymentMethod.panHash ?? ""),
+        unique_id: String(request.data.paymentMethod.uniqueId ?? ""),
+      };
+    }
+
     const novalnetPayload = {
       merchant: {
         signature: String(getConfig()?.novalnetPrivateKey ?? ""),
@@ -451,17 +469,8 @@ if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
       },
     };
 
-    let paymentActionUrl = "payment"; 
-        
-    if (paymentAction === "authorize") {
-      const orderTotal = String(parsedCart?.taxedPrice?.totalGross?.centAmount);
-      paymentActionUrl = (orderTotal >= minimumAmount)
-        ? "authorize"
-        : "payment";
-    }
-    
     const url =
-      paymentActionUrl === "payment"
+      paymentAction === "payment"
         ? "https://payport.novalnet.de/v2/payment"
         : "https://payport.novalnet.de/v2/authorize";
 
@@ -504,6 +513,10 @@ if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
       paymentMethodInfo: {
         paymentInterface: getPaymentInterfaceFromContext() || "mock",
       },
+      paymentStatus: {
+        interfaceCode: JSON.stringify(parsedResponse),
+        interfaceText: transactiondetails + "\n" + bankDetails,
+      },
       ...(ctCart.customerId && {
         customer: { typeId: "customer", id: ctCart.customerId },
       }),
@@ -519,7 +532,9 @@ if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
     });
 
     const pspReference = randomUUID().toString();
-
+    // Generate transaction comments
+    const transactionComments = `Novalnet Transaction ID: ${parsedResponse?.transaction?.tid ?? "N/A"}\nPayment Type: ${parsedResponse?.transaction?.payment_type ?? "N/A"}\nStatus: ${parsedResponse?.result?.status ?? "N/A"}`;
+    
     const updatedPayment = await this.ctPaymentService.updatePayment({
       id: ctPayment.id,
       pspReference,
@@ -535,7 +550,7 @@ if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
             key: "novalnet-transaction-comments",
           },
           fields: {
-            transactiondetails,
+            transactionComments,
           },
         },
       } as unknown as any,
@@ -642,16 +657,18 @@ if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
       },
     });
 
-    const paymentRef = updatedPayment.id;
+    const paymentRef    = updatedPayment.id;
     const paymentCartId = ctCart.id;
-    const orderNumber = getFutureOrderNumberFromContext() ?? "";
-    const ctPaymentId = ctPayment.id;
+    const orderNumber   = getFutureOrderNumberFromContext() ?? "";
+    const ctPaymentId   = ctPayment.id;
+
 
     const url = new URL("/success", processorURL);
     url.searchParams.append("paymentReference", paymentRef);
     url.searchParams.append("ctsid", sessionId);
     url.searchParams.append("orderNumber", orderNumber);
-    url.searchParams.append("ctPaymentId", ctPaymentId);
+    url.searchParams.append("ctPaymentID", ctPaymentId);
+    url.searchParams.append("pspReference", pspReference);
     const returnUrl = url.toString();
     
     const ReturnurlContext = getMerchantReturnUrlFromContext();
@@ -848,7 +865,7 @@ if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
 
   private convertPaymentResultCode(resultCode: PaymentOutcome): string {
     switch (resultCode) {
-      case PaymentOutcome.AUTHORIZED: 
+      case PaymentOutcome.AUTHORIZED:
         return "Success";
       case PaymentOutcome.REJECTED:
         return "Failure";

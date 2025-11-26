@@ -154,7 +154,8 @@ export const paymentRoutes = async (
       paymentReference?: string;
       ctsid?: string;
       orderNumber?: string;
-      ctPaymentId?: string;
+      ctPaymentID?: string;
+      pspReference?: string;
     };
 
     const accessKey = String(getConfig()?.novalnetPublicKey ?? "");
@@ -177,14 +178,15 @@ export const paymentRoutes = async (
       
       if (generatedChecksum === query.checksum) {
         try {
-
           const result = await opts.paymentService.createPaymentt({
             data: {
               interfaceId: query.tid,
-              ctPaymentId: query.ctPaymentId,
+              ctId: query.ctsid,
+              ctPaymentId: query.ctPaymentID,
+              pspReference: query.pspReference,
             },
           }); 
-          
+
           const orderId = await getOrderIdFromOrderNumber(orderNumber);
           if (!orderId) return reply.code(404).send('Order not found');
 
