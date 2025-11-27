@@ -504,7 +504,7 @@ export class MockPaymentService extends AbstractPaymentService {
     return { ok: false, reason: 'all_attempts_failed', fieldError: r.body, attachError: a.body };
   } catch (ex) {
     console.error('Unexpected error in debugUpdateTxComments:', ex);
-    return { ok: false, reason: 'exception', error: ex?.message ?? ex };
+    return { ok: false, reason: 'exception', error: ex };
   }
 }
 
