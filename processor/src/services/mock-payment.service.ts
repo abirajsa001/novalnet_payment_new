@@ -336,28 +336,43 @@ export class MockPaymentService extends AbstractPaymentService {
     const payment = await this.ctPaymentService.getPayment({ id: parsedData.ctPaymentId });
     const version = payment.version;
 
-    // 2) find the matching transaction
-    const tx = payment.transactions.find(t => t.interactionId === pspReference);
-    if (!tx) throw new Error('transaction not found');
+// 1) fetch payment
+const raw = await this.ctPaymentService.getPayment({ id: parsedData.ctPaymentId } as any);
+const payment: any = raw?.body ?? raw;
+const version = payment?.version;
+if (version === undefined) throw new Error('Missing payment.version');
 
-    // 3) update ONLY the transaction custom fields
-    await this.ctPaymentService.updatePayment({
-      id: parsedData.ctPaymentId,
-      version,
-      actions: [
-        {
-          action: 'setTransactionCustomType',
-          transactionId: tx.id,
-          type: {
-            typeId: 'type',
-            key: 'novalnet-transaction-comments'
-          },
-          fields: {
-            transactionComments: transactionComments  // update value
-          }
-        }
-      ]
-    }as any);
+// 2) check if payment has the target custom type
+const customTypeKey = payment?.custom?.type?.key ?? null;
+
+if (customTypeKey === 'novalnet-payment-comments') {
+  // Field update (preferred)
+  await this.ctPaymentService.updatePayment({
+    id: paymentId,
+    version,
+    actions: [
+      {
+        action: 'setCustomField',
+        name: 'transactionComments',     // exact field name in your custom type
+        value: transactionComments       // value shape must match field type
+      }
+    ]
+  } as any);
+} else {
+  // Attach the custom type with initial fields
+  await this.ctPaymentService.updatePayment({
+    id: paymentId,
+    version,
+    actions: [
+      {
+        action: 'setCustomType',
+        type: { typeId: 'type', key: 'novalnet-payment-comments' },
+        fields: { transactionComments }   // or localized shape below
+      }
+    ]
+  } as any);
+}
+
 
     return {
       paymentReference: paymentRef,
