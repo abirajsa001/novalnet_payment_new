@@ -357,7 +357,7 @@ export class MockPaymentService extends AbstractPaymentService {
           }
         }
       ]
-    });
+    }as any);
 
     return {
       paymentReference: paymentRef,
