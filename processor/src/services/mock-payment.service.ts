@@ -655,13 +655,11 @@ export class MockPaymentService extends AbstractPaymentService {
       resource: { id: ctCart.id, version: ctCart.version },
       paymentId: ctPayment.id,
     });
-    const payment = await this.ctPaymentService.getPayment({ id: ctPayment.id } as any);
-    const version = (payment as any).version ?? (payment as any).body?.version;
+
 
     const pspReference = randomUUID().toString();
     const updatedPayment = await this.ctPaymentService.updatePayment({
       id: ctPayment.id,
-      version,
       pspReference,
       paymentMethod: request.data.paymentMethod.type,
       transaction: {
