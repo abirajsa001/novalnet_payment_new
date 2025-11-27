@@ -328,31 +328,36 @@ export class MockPaymentService extends AbstractPaymentService {
     const pspReference = parsedData?.pspReference;
     const transactionComments = `Novalnet Transaction ID: ${responseData?.transaction?.tid ?? "N/A"}\nPayment Type: ${responseData?.transaction?.payment_type ?? "N/A"}\nStatus: ${responseData?.result?.status ?? "N/A"}`;
 
-    
     log.info("Payment created with Novalnet details for redirect:");
     log.info("Payment transactionComments for redirect:", transactionComments);
     log.info("ctPayment id for redirect:", parsedData?.ctPaymentId);
     log.info("psp reference for redirect:", pspReference);
-  
-    const payment = await this.ctPaymentService.getPayment({ id: parsedData.ctPaymentId } as any);
-    const version = (payment as any).version ?? (payment as any).body?.version;
-    
-    // pick the transactionId (find the transaction by interactionId or index)
-    const tx = (payment as any).transactions?.find((t: any) => t.interactionId === pspReference);
+    // 1) fetch payment
+    const payment = await this.ctPaymentService.getPayment({ id: parsedData.ctPaymentId });
+    const version = payment.version;
+
+    // 2) find the matching transaction
+    const tx = payment.transactions.find(t => t.interactionId === pspReference);
     if (!tx) throw new Error('transaction not found');
-    
+
+    // 3) update ONLY the transaction custom fields
     await this.ctPaymentService.updatePayment({
       id: parsedData.ctPaymentId,
       version,
       actions: [
         {
-          action: 'setTransactionCustomField',
-          transactionId: tx.id,          // required: selects transaction to update
-          name: 'transactionComments',
-          value: transactionComments,
-        },
-      ],
-    } as any);
+          action: 'setTransactionCustomType',
+          transactionId: tx.id,
+          type: {
+            typeId: 'type',
+            key: 'novalnet-transaction-comments'
+          },
+          fields: {
+            transactionComments: transactionComments  // update value
+          }
+        }
+      ]
+    });
 
     return {
       paymentReference: paymentRef,
