@@ -338,22 +338,19 @@ export class MockPaymentService extends AbstractPaymentService {
     log.info( pspReference);
     const updatedPayment = await this.ctPaymentService.updatePayment({
       id: parsedData?.ctPaymentId,
-      transaction: {
-      type: "Authorization",
-      amount: "100",
-      interactionId: pspReference,
-      state: 'SUCCESS',
-      custom: {
-        type: {
-        typeId: "type",
-        key: "novalnet-transaction-comments",
+      actions: [
+        {
+          action: 'setCustomType',
+          type: {
+            typeId: 'type',
+            key: 'novalnet-transaction-comments',
+          },
+          fields: {
+            transactionComments,
+          },
         },
-        fields: {
-        transactionComments,
-        },
-      },
-      } as unknown as any,
-    }as any);
+      ],
+    });
 
     return {
       paymentReference: paymentRef,
