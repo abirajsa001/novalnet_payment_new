@@ -332,19 +332,16 @@ export class MockPaymentService extends AbstractPaymentService {
     log.info("Payment transactionComments for redirect:", transactionComments);
     log.info("ctPayment id for redirect:", parsedData?.ctPaymentId);
     log.info("psp reference for redirect:", pspReference);
-    // 1) fetch payment
-    const payment = await this.ctPaymentService.getPayment({ id: parsedData.ctPaymentId });
-    const version = payment.version;
-
 // 1) fetch payment
-const raw = await this.ctPaymentService.getPayment({ id: parsedData.ctPaymentId } as any);
-const payment: any = raw?.body ?? raw;
+const raw = await this.ctPaymentService.getPayment({ id: parsedData?.ctPaymentId } as any);
+const payment: any = (raw as any)?.body ?? raw;
+const paymentId = parsedData.ctPaymentId;
 const version = payment?.version;
 if (version === undefined) throw new Error('Missing payment.version');
 
 // 2) check if payment has the target custom type
 const customTypeKey = payment?.custom?.type?.key ?? null;
-
+log.info(paymentId);
 if (customTypeKey === 'novalnet-payment-comments') {
   // Field update (preferred)
   await this.ctPaymentService.updatePayment({
