@@ -335,7 +335,7 @@ export class MockPaymentService extends AbstractPaymentService {
     const res = await this.debugUpdateTxComments({
       paymentId: parsedData.ctPaymentId,
       pspReference,
-      transactionComments: "Novalnet Transaction ID: N/A Payment Type: N/A Status: N/A"
+      transactionComments: transactionComments,
     });
     console.log('debugUpdate result:', res);
 
