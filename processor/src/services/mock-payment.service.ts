@@ -339,8 +339,6 @@ export class MockPaymentService extends AbstractPaymentService {
       log.error("attachTransactionComments threw:", err);
       // decide whether to fail the overall flow or continue — optional
     }
-    console.log('attachResult result:', attachResult);
-
     return {
       paymentReference: paymentRef,
     };
