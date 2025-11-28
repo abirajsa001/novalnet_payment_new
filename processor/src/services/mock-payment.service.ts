@@ -288,7 +288,7 @@ export class MockPaymentService extends AbstractPaymentService {
   public async createPaymentt({ data }: { data: any }) {
     const parsedData = typeof data === "string" ? JSON.parse(data) : data;
     const config = getConfig();
-    await createTransactionCommentsTypes();
+    await createTransactionCommentsType();
     log.info("getMerchantReturnUrlFromContext from context:", getMerchantReturnUrlFromContext());
     const merchantReturnUrl = getMerchantReturnUrlFromContext() || config.merchantReturnUrl;
 
