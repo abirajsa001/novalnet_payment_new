@@ -332,181 +332,156 @@ export class MockPaymentService extends AbstractPaymentService {
     log.info("Payment transactionComments for redirect:", transactionComments);
     log.info("ctPayment id for redirect:", parsedData?.ctPaymentId);
     log.info("psp reference for redirect:", pspReference);
-    const res = await this.debugUpdateTxComments({
-      paymentId: parsedData.ctPaymentId,
-      pspReference,
-      transactionComments: transactionComments,
-    });
-    console.log('debugUpdate result:', res);
+    try {
+      const attachResult = await this.attachTransactionComments(this.ctPaymentService,  parsedData.ctPaymentId, pspReference, transactionComments);
+      log.info("attachTransactionComments result:", attachResult);
+    } catch (err) {
+      log.error("attachTransactionComments threw:", err);
+      // decide whether to fail the overall flow or continue — optional
+    }
+    console.log('attachResult result:', attachResult);
 
     return {
       paymentReference: paymentRef,
     };
   }
   
-  public async debugUpdateTxComments({
-  paymentId,
-  pspReference,
-  transactionComments, // string
-}: {
-  paymentId: string;
-  pspReference: string;
-  transactionComments: string;
-}) {
-  const fetchPayment = async () => {
-    const raw = await this.ctPaymentService.getPayment({ id: paymentId } as any);
-    return (raw as any)?.body ?? raw;
+ /** Utility: update payment with actions (fetches version, retries once on 409) */
+ public async  updatePaymentWithActions(
+  ctPaymentService: any,
+  paymentId: string,
+  actions: any[],
+) {
+  if (!Array.isArray(actions) || actions.length === 0) {
+    throw new Error("No actions provided");
+  }
+
+  // fetch payment to get current version
+  const raw = await ctPaymentService.getPayment({ id: paymentId } as any);
+  const payment = (raw as any)?.body ?? raw;
+  const version = payment?.version;
+  if (version === undefined) throw new Error("Missing payment.version");
+
+  const payload = {
+    id: paymentId,
+    version,
+    actions,
   };
 
-  const runUpdate = async (payload: any) => {
-    try {
-      const resp = await this.ctPaymentService.updatePayment(payload as any);
-      return { ok: true, resp };
-    } catch (err: any) {
-      // LOG EVERYTHING: status, message, body/response
-      console.error('updatePayment threw:', err?.message ?? err);
-      console.error('updatePayment status:', err?.statusCode ?? err?.status);
-      console.error('updatePayment body:', JSON.stringify(err?.body ?? err?.response ?? err, null, 2));
-      return { ok: false, error: err, body: err?.body ?? err?.response ?? null, status: err?.statusCode ?? err?.status };
-    }
-  };
-
+  // try update once, on 409 retry once with refreshed version
   try {
-    // 1) fetch
-    let payment = await fetchPayment();
-    console.log('payment.version:', payment?.version);
-    const version = payment?.version;
-    if (version === undefined) throw new Error('payment.version missing');
-
-    const transactions: any[] = payment?.transactions ?? [];
-    console.log('transactions.length:', transactions.length);
-    if (!transactions.length) throw new Error('no transactions on payment');
-
-    const tx = transactions.find((t: any) => t.interactionId === pspReference || String(t.interactionId) === String(pspReference))
-                ?? transactions[transactions.length - 1];
-    console.log('target tx (pre-update):', JSON.stringify(tx, null, 2));
-    if (!tx) throw new Error('tx not found');
-    const txId = tx.id;
-    if (!txId) throw new Error('tx missing id');
-
-    // 2) try setTransactionCustomField (preferred when type already attached)
-    const payloadField = {
-      id: paymentId,
-      version,
-      actions: [
-        {
-          action: 'setTransactionCustomField',
-          transactionId: txId,
-          name: 'transactionComments',
-          value: transactionComments,
-        },
-      ],
-    };
-
-    console.log('Trying setTransactionCustomField payload:', JSON.stringify(payloadField, null, 2));
-    let r = await runUpdate(payloadField);
-    if (r.ok) {
-      // verify
-      const after = await fetchPayment();
-      const afterTx = (after.transactions ?? []).find((t: any) => t.id === txId);
-      console.log('afterTx.custom:', JSON.stringify(afterTx?.custom ?? null, null, 2));
-      return { ok: true, method: 'setTransactionCustomField', afterTx };
-    }
-
-    // If 409, refresh and retry once
-    if (r.status === 409) {
-      console.warn('409 on setTransactionCustomField — refetching and retrying once');
-      payment = await fetchPayment();
-      payloadField.version = payment.version;
-      r = await runUpdate(payloadField);
-      if (r.ok) {
-        const after = await fetchPayment();
-        const afterTx = (after.transactions ?? []).find((t: any) => t.id === txId);
-        return { ok: true, method: 'setTransactionCustomField_retry', afterTx };
+    const resp = await ctPaymentService.updatePayment(payload as any);
+    return { ok: true, resp };
+  } catch (err: any) {
+    const status = err?.statusCode ?? err?.status;
+    console.error("updatePayment failed (first attempt):", status, err?.body ?? err?.message ?? err);
+    if (status === 409) {
+      // refetch version and retry once
+      const raw2 = await ctPaymentService.getPayment({ id: paymentId } as any);
+      const payment2 = (raw2 as any)?.body ?? raw2;
+      const version2 = payment2?.version;
+      if (version2 === undefined) throw new Error("Missing payment.version on retry");
+      payload.version = version2;
+      try {
+        const resp2 = await ctPaymentService.updatePayment(payload as any);
+        return { ok: true, resp: resp2, retried: true };
+      } catch (err2: any) {
+        console.error("updatePayment failed (retry):", err2?.statusCode ?? err2?.status, err2?.body ?? err2?.message ?? err2);
+        return { ok: false, error: err2, status: err2?.statusCode ?? err2?.status, body: err2?.body ?? err2?.response ?? null };
       }
     }
-
-    // If field update fails due to validation (e.g. wrong field type), try attaching type
-    console.warn('setTransactionCustomField failed, will attempt setTransactionCustomType; error body:', r.body);
-
-    // 3) try setTransactionCustomType (attach the type + fields)
-    const payloadAttach = {
-      id: paymentId,
-      version: payloadField.version ?? version,
-      actions: [
-        {
-          action: 'setTransactionCustomType',
-          transactionId: txId,
-          type: { typeId: 'type', key: 'novalnet-transaction-comments' },
-          fields: { transactionComments },
-        },
-      ],
-    };
-
-    console.log('Trying setTransactionCustomType payload:', JSON.stringify(payloadAttach, null, 2));
-    let a = await runUpdate(payloadAttach);
-    if (a.ok) {
-      const after = await fetchPayment();
-      const afterTx = (after.transactions ?? []).find((t: any) => t.id === txId);
-      console.log('afterTx.custom after attach:', JSON.stringify(afterTx?.custom ?? null, null, 2));
-      return { ok: true, method: 'setTransactionCustomType', afterTx };
-    }
-
-    // If attach failed due to 409, retry once
-    if (a.status === 409) {
-      console.warn('409 on attach — refetching and retrying once');
-      payment = await fetchPayment();
-      payloadAttach.version = payment.version;
-      a = await runUpdate(payloadAttach);
-      if (a.ok) {
-        const after = await fetchPayment();
-        const afterTx = (after.transactions ?? []).find((t: any) => t.id === txId);
-        return { ok: true, method: 'setTransactionCustomType_retry', afterTx };
-      }
-    }
-
-    // 4) If attach failed due to field validation (likely LocalizedString) try localized shape
-    console.warn('setTransactionCustomType failed, error body:', a.body);
-    if (typeof transactionComments === 'string') {
-      const payloadLocalized = {
-        id: paymentId,
-        version: payloadAttach.version ?? version,
-        actions: [
-          {
-            action: 'setTransactionCustomType',
-            transactionId: txId,
-            type: { typeId: 'type', key: 'novalnet-transaction-comments' },
-            fields: { transactionComments: { en: transactionComments } }, // try en
-          },
-        ],
-      };
-      console.log('Trying localized payload:', JSON.stringify(payloadLocalized, null, 2));
-      let l = await runUpdate(payloadLocalized);
-      if (l.ok) {
-        const after = await fetchPayment();
-        const afterTx = (after.transactions ?? []).find((t: any) => t.id === txId);
-        return { ok: true, method: 'setTransactionCustomType_localized', afterTx };
-      }
-      if (l.status === 409) {
-        // retry once
-        payment = await fetchPayment();
-        payloadLocalized.version = payment.version;
-        l = await runUpdate(payloadLocalized);
-        if (l.ok) {
-          const after = await fetchPayment();
-          const afterTx = (after.transactions ?? []).find((t: any) => t.id === txId);
-          return { ok: true, method: 'setTransactionCustomType_localized_retry', afterTx };
-        }
-      }
-      return { ok: false, reason: 'attach_localized_failed', body: l.body ?? l.error };
-    }
-
-    return { ok: false, reason: 'all_attempts_failed', fieldError: r.body, attachError: a.body };
-  } catch (ex) {
-    console.error('Unexpected error in debugUpdateTxComments:', ex);
-    return { ok: false, reason: 'exception', error: ex };
+    return { ok: false, error: err, status, body: err?.body ?? err?.response ?? null };
   }
 }
+
+/** Attach transaction comments robustly
+ * - finds transaction by interactionId (pspReference) or falls back to last transaction
+ * - tries setTransactionCustomField, then setTransactionCustomType, then localized
+ */
+public async  attachTransactionComments(
+  ctPaymentService: any,
+  paymentId: string,
+  pspReference: string,
+  transactionComments: string,
+) {
+  // fetch payment
+  const raw = await ctPaymentService.getPayment({ id: paymentId } as any);
+  const payment = (raw as any)?.body ?? raw;
+  if (!payment) throw new Error("Payment not found");
+
+  const transactions: any[] = payment.transactions ?? [];
+  if (!transactions.length) throw new Error("No transactions on payment");
+
+  const targetTx = transactions.find((t: any) =>
+    t.interactionId === pspReference || String(t.interactionId) === String(pspReference)
+  ) ?? transactions[transactions.length - 1];
+
+  if (!targetTx) throw new Error("Transaction not found");
+  const txId = targetTx.id;
+  if (!txId) throw new Error("Transaction id missing");
+
+  // 1) try setTransactionCustomField (fast path)
+  const actionsField = [
+    {
+      action: "setTransactionCustomField",
+      transactionId: txId,
+      name: "transactionComments",
+      value: transactionComments,
+    },
+  ];
+
+  console.info("Attempting setTransactionCustomField for txId:", txId);
+  let fieldResult = await this.updatePaymentWithActions(ctPaymentService, paymentId, actionsField);
+  if (fieldResult.ok) {
+    console.info("setTransactionCustomField succeeded");
+    return { ok: true, method: "setTransactionCustomField", resp: fieldResult.resp };
+  }
+
+  // If setTransactionCustomField failed due to ValidationError (type not present / wrong shape), try attaching type
+  console.warn("setTransactionCustomField failed, will try setTransactionCustomType. error:", fieldResult.body ?? fieldResult.error);
+
+  // 2) try setTransactionCustomType (attach type + fields)
+  const actionsAttach = [
+    {
+      action: "setTransactionCustomType",
+      transactionId: txId,
+      type: { typeId: "type", key: "novalnet-transaction-comments" },
+      fields: { transactionComments },
+    },
+  ];
+
+  console.info("Attempting setTransactionCustomType for txId:", txId);
+  let attachResult = await this.updatePaymentWithActions(ctPaymentService, paymentId, actionsAttach);
+  if (attachResult.ok) {
+    console.info("setTransactionCustomType succeeded");
+    return { ok: true, method: "setTransactionCustomType", resp: attachResult.resp };
+  }
+
+  // 3) If attach failed due to field / localized shape, try localized string (common when field is LocalizedString)
+  console.warn("setTransactionCustomType failed, trying localized shape. error:", attachResult.body ?? attachResult.error);
+
+  if (typeof transactionComments === "string") {
+    const actionsLocalized = [
+      {
+        action: "setTransactionCustomType",
+        transactionId: txId,
+        type: { typeId: "type", key: "novalnet-transaction-comments" },
+        fields: { transactionComments: { en: transactionComments } }, // try english locale
+      },
+    ];
+    console.info("Attempting setTransactionCustomType with localized transactionComments");
+    const locResult = await this.updatePaymentWithActions(ctPaymentService, paymentId, actionsLocalized);
+    if (locResult.ok) {
+      console.info("setTransactionCustomType localized succeeded");
+      return { ok: true, method: "setTransactionCustomType_localized", resp: locResult.resp };
+    }
+    console.error("setTransactionCustomType localized also failed:", locResult.body ?? locResult.error);
+    return { ok: false, reason: "attach_localized_failed", body: locResult.body ?? locResult.error };
+  }
+
+  return { ok: false, reason: "all_attempts_failed", fieldError: fieldResult.body, attachError: attachResult.body };
+}
+
 
   public async createPayment(
     request: CreatePaymentRequest,
