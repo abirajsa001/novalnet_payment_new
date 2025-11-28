@@ -915,18 +915,23 @@ export class MockPaymentService extends AbstractPaymentService {
     if (!tx) throw new Error("Target transaction not found in attachEmptyTxCommentsType");
     const txId = tx.id;
     if (!txId) throw new Error("Transaction id missing in attachEmptyTxCommentsType");
-	await this.ctPaymentService.updatePayment({
-	  id: pID,
-	  version,
-	  actions: [
-		{
-		  action: "setTransactionCustomType",
-		  transactionId: txId,
-		  type: { typeId: "type", key: "novalnet-transaction-comments" },
-		  fields: { transactionComments },
-		},
-	  ],
-	} as any);
+    const updatedPayment = await this.ctPaymentService.updatePayment({
+      id: pID,
+      version,
+      actions: [
+        {
+          action: "setTransactionCustomType",
+          transactionId: txId,
+          type: {
+            typeId: "type",                     // <-- type reference
+            key: "novalnet-transaction-comments" // <-- your custom type key
+          },
+          fields: {
+            transactionComments                 // <-- field you want to create
+          }
+        }
+      ]
+    });
 
 
     const paymentRef    = (updatedPayment as any)?.id ?? ctPayment.id;
