@@ -365,10 +365,10 @@ export class MockPaymentService extends AbstractPaymentService {
       await this.ctPaymentService.updatePayment({
         id: parsedData.ctPaymentId,
         actions: updateActions
-      });
+      }as any);
       console.log('Payment updated successfully!');
     } catch (error) {
-      console.error('Failed to update Payment:', error.message, error.body);
+      console.error('Failed to update Payment:', error);
     }
     
     return {
