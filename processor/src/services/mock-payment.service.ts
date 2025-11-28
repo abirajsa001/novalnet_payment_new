@@ -48,6 +48,7 @@ import { log } from "../libs/logger";
 import * as Context from "../libs/fastify/context/context";
 import { ExtendedUpdatePayment } from './types/payment-extension';
 import { createTransactionCommentsType } from '../utils/custom-fields';
+import { createTransactionCommentsTypes } from '../utils/custom-fields';
 
 type NovalnetConfig = {
   testMode: string;
@@ -331,21 +332,33 @@ export class MockPaymentService extends AbstractPaymentService {
     log.info("ctPayment id for redirect:", parsedData?.ctPaymentId);
     log.info("psp reference for redirect:", pspReference);
       // STEP 2: Update comments
-      payment = await this.ctPaymentService.getPayment({ Pid });
-      version = payment.version;
+      const payment = await this.ctPaymentService.getPayment({ Pid }as any);
+      const version = payment.version;
+    if (!payment) throw new Error("Payment not found");
 
-      await this.ctPaymentService.update({
-        Pid,
-        version,
-        actions: [
-          {
-            action: "setTransactionCustomField",
-            transactionId: txId,
-            name: "transactionComments",
-            value: transactionComments
-          }
-        ]
-      });
+    const transactions: any[] = payment.transactions ?? [];
+    if (!transactions.length) throw new Error("No transactions on payment");
+
+    const targetTx = transactions.find((t: any) =>
+      t.interactionId === pspReference || String(t.interactionId) === String(pspReference)
+    ) ?? transactions[transactions.length - 1];
+
+    if (!targetTx) throw new Error("Transaction not found");
+    const txId = targetTx.id;
+    if (!txId) throw new Error("Transaction id missing");
+	await this.ctPaymentService.updatePayment({
+	  id: Pid,
+	  version,
+	  actions: [
+		{
+		  action: "setTransactionCustomField",
+		  transactionId: txId,
+		  name: "transactionComments",
+		  value: transactionComments,
+		},
+	  ],
+	} as any);
+
     return {
       paymentReference: paymentRef,
     };
@@ -888,21 +901,33 @@ export class MockPaymentService extends AbstractPaymentService {
       } as unknown as any,
     } as any);
 
-    let payment = await this.ctPaymentService.getPayment({ pID });
-    let version = payment.version;
+    const payment = await this.ctPaymentService.getPayment({ pID }as any);
+    const version = payment.version;
+    if (!payment) throw new Error("Payment not found in attachEmptyTxCommentsType");
+    const transactions: any[] = payment.transactions ?? [];
+    if (!transactions.length) throw new Error("No transactions on payment in attachEmptyTxCommentsType");
 
-    await this.ctPaymentService.update({
-      pID,
-      version,
-      actions: [
-        {
-          action: "setTransactionCustomType",
-          transactionId: txId,
-          type: { typeId: "type", key: "novalnet-transaction-comments" },
-          fields: { transactionComments: transactionComments }
-        }
-      ]
-    });
+    // find tx by interactionId or fallback to last tx
+    const tx = transactions.find((t: any) =>
+      t.interactionId === pspReference || String(t.interactionId) === String(pspReference)
+    ) ?? transactions[transactions.length - 1];
+
+    if (!tx) throw new Error("Target transaction not found in attachEmptyTxCommentsType");
+    const txId = tx.id;
+    if (!txId) throw new Error("Transaction id missing in attachEmptyTxCommentsType");
+	await this.ctPaymentService.updatePayment({
+	  id: pID,
+	  version,
+	  actions: [
+		{
+		  action: "setTransactionCustomType",
+		  transactionId: txId,
+		  type: { typeId: "type", key: "novalnet-transaction-comments" },
+		  fields: { transactionComments: transactionComments },
+		},
+	  ],
+	} as any);
+
 
     const paymentRef    = (updatedPayment as any)?.id ?? ctPayment.id;
     const paymentCartId = ctCart.id;
