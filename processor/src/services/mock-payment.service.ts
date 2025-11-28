@@ -757,12 +757,18 @@ export class MockPaymentService extends AbstractPaymentService {
         amount: ctPayment.amountPlanned,
         interactionId: pspReference,
         state: this.convertPaymentResultCode(request.data.paymentOutcome),
+        custom: {
+          type: {
+          typeId: "type",
+          key: "novalnet-transaction-comments",
+          },
+          fields: {
+          transactionComments,
+          },
+        },
       } as unknown as any,
     } as any);
 
-    // Attach the custom type + field robustly via helper
-    const attachResult = await this.attachTransactionComments(this.ctPaymentService, ctPayment.id, pspReference, transactionComments);
-    log.info("attachTransactionComments result (createPayment):", attachResult);
 
     // return payment id (ctPayment was created earlier; no inline/custom update)
     return {
@@ -869,12 +875,17 @@ export class MockPaymentService extends AbstractPaymentService {
         amount: ctPayment.amountPlanned,
         interactionId: pspReference,
         state: this.convertPaymentResultCode(request.data.paymentOutcome),
+        custom: {
+          type: {
+          typeId: "type",
+          key: "novalnet-transaction-comments",
+          },
+          fields: {
+          transactionComments,
+          },
+        },
       } as unknown as any,
     } as any);
-
-    // Attach type with empty field to avoid later validation issues (so setTransactionCustomField can be used)
-    const attachResult = await this.attachEmptyTxCommentsType(ctPayment.id, pspReference);
-    log.info("attachEmptyTxCommentsType result (createPayments):", attachResult);
 
     const paymentRef    = (updatedPayment as any)?.id ?? ctPayment.id;
     const paymentCartId = ctCart.id;
