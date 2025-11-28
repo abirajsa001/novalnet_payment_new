@@ -62,3 +62,37 @@ import {
     }
   };
   
+
+  export const createTransactionCommentsTypes = async () => {
+    try {
+      const typeExists = await apiRoot
+        .types()
+        .withKey({ key: "novalnet-transaction-commentss" })
+        .get()
+        .execute()
+        .catch(() => null);
+  
+  if (!typeExists) {
+    await apiRoot
+      .types()
+      .post({
+        body: {
+          key: "novalnet-transaction-commentss",
+          name: { en: "Novalnet Transaction Commentss" },
+          resourceTypeIds: ["transactions"],
+          fieldDefinitions: [
+            {
+              name: "transactionCommentss",
+              label: { en: "Transaction Commentss" },
+              type: { name: "String" },
+              required: false,
+            },
+          ],
+        },
+      })
+      .execute();
+  }
+    } catch (error) {
+      console.error("Error creating custom field types:", error);
+    }
+  };

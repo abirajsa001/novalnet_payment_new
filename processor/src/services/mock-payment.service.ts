@@ -287,7 +287,7 @@ export class MockPaymentService extends AbstractPaymentService {
   public async createPaymentt({ data }: { data: any }) {
     const parsedData = typeof data === "string" ? JSON.parse(data) : data;
     const config = getConfig();
-    await createTransactionCommentsType();
+    await createTransactionCommentsTypes();
     log.info("getMerchantReturnUrlFromContext from context:", getMerchantReturnUrlFromContext());
     const merchantReturnUrl = getMerchantReturnUrlFromContext() || config.merchantReturnUrl;
 
@@ -323,54 +323,29 @@ export class MockPaymentService extends AbstractPaymentService {
     }
     const paymentRef = responseData?.custom?.paymentRef ?? "";
     const pspReference = parsedData?.pspReference;
+    const Pid = parsedData?.ctPaymentId;
     const transactionComments = `Novalnet Transaction ID: ${responseData?.transaction?.tid ?? "NN/A"}\nPayment Type: ${responseData?.transaction?.payment_type ?? "NN/A"}\nStatus: ${responseData?.result?.status ?? "NN/A"}`;
 
     log.info("Payment created with Novalnet details for redirect:");
     log.info("Payment transactionComments for redirect:", transactionComments);
     log.info("ctPayment id for redirect:", parsedData?.ctPaymentId);
     log.info("psp reference for redirect:", pspReference);
-    // fetch payment
-    const raw = await this.ctPaymentService.getPayment({ id: parsedData?.ctPaymentId } as any);
-    const payment = (raw as any)?.body ?? raw;
-    if (!payment) throw new Error("Payment not found in attachEmptyTxCommentsType");
-    const transactions: any[] = payment.transactions ?? [];
-    if (!transactions.length) throw new Error("No transactions on payment in attachEmptyTxCommentsType");
+      // STEP 2: Update comments
+      payment = await this.ctPaymentService.getPayment({ Pid });
+      version = payment.version;
 
-    // find tx by interactionId or fallback to last tx
-    const tx = transactions.find((t: any) =>
-      t.interactionId === pspReference || String(t.interactionId) === String(pspReference)
-    ) ?? transactions[transactions.length - 1];
-
-    if (!tx) throw new Error("Target transaction not found in attachEmptyTxCommentsType");
-    const txId = tx.id;
-    if (!txId) throw new Error("Transaction id missing in attachEmptyTxCommentsType");
-
-    const updateActions = [
-      {
-        action: 'setTransactionCustomType',
-        transactionId: txId, 
-        type: {
-          typeId: 'type', 
-          key: 'novalnet-transaction-comments'
-        },
-        fields: {
-          transactionComments 
-        }
-      }
-    ];
-    
-    console.log('Sending Payment Update Request with actions:', JSON.stringify(updateActions, null, 2));
-    
-    try {
-      await this.ctPaymentService.updatePayment({
-        id: parsedData.ctPaymentId,
-        actions: updateActions
-      }as any);
-      console.log('Payment updated successfully!');
-    } catch (error) {
-      console.error('Failed to update Payment:', error);
-    }
-    
+      await this.ctPaymentService.update({
+        Pid,
+        version,
+        actions: [
+          {
+            action: "setTransactionCustomField",
+            transactionId: txId,
+            name: "transactionComments",
+            value: transactionComments
+          }
+        ]
+      });
     return {
       paymentReference: paymentRef,
     };
@@ -895,9 +870,9 @@ export class MockPaymentService extends AbstractPaymentService {
     });
 
     // Generate transaction comments
-    const transactionComments = `Novalnet Transaction ID: ${"N/A"}\nPayment Type: ${"N/A"}\nStatus: ${"N/A"}`;
+    const transactionComments = `Novalnet Transaction ID: ${"N/AA"}\nPayment Type: ${"N/AA"}\nStatus: ${"N/AA"}`;
     const pspReference = randomUUID().toString();
-
+    const pID = ctPayment.id;
     // ---------------------------
     // CREATE TRANSACTION (NO CUSTOM)
     // ---------------------------
@@ -910,17 +885,24 @@ export class MockPaymentService extends AbstractPaymentService {
         amount: ctPayment.amountPlanned,
         interactionId: pspReference,
         state: this.convertPaymentResultCode(request.data.paymentOutcome),
-        custom: {
-          type: {
-          typeId: "type",
-          key: "novalnet-transaction-comments",
-          },
-          fields: {
-          transactionComments,
-          },
-        },
       } as unknown as any,
     } as any);
+
+    let payment = await this.ctPaymentService.getPayment({ pID });
+    let version = payment.version;
+
+    await this.ctPaymentService.update({
+      pID,
+      version,
+      actions: [
+        {
+          action: "setTransactionCustomType",
+          transactionId: txId,
+          type: { typeId: "type", key: "novalnet-transaction-comments" },
+          fields: { transactionComments: transactionComments }
+        }
+      ]
+    });
 
     const paymentRef    = (updatedPayment as any)?.id ?? ctPayment.id;
     const paymentCartId = ctCart.id;
