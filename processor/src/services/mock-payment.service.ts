@@ -329,17 +329,52 @@ export class MockPaymentService extends AbstractPaymentService {
     log.info("Payment transactionComments for redirect:", transactionComments);
     log.info("ctPayment id for redirect:", parsedData?.ctPaymentId);
     log.info("psp reference for redirect:", pspReference);
+    // fetch payment
+    const raw = await this.ctPaymentService.getPayment({ id: parsedData?.ctPaymentId } as any);
+    const payment = (raw as any)?.body ?? raw;
+    if (!payment) throw new Error("Payment not found in attachEmptyTxCommentsType");
+    const transactions: any[] = payment.transactions ?? [];
+    if (!transactions.length) throw new Error("No transactions on payment in attachEmptyTxCommentsType");
+
+    // find tx by interactionId or fallback to last tx
+    const tx = transactions.find((t: any) =>
+      t.interactionId === pspReference || String(t.interactionId) === String(pspReference)
+    ) ?? transactions[transactions.length - 1];
+
+    if (!tx) throw new Error("Target transaction not found in attachEmptyTxCommentsType");
+    const txId = tx.id;
+    if (!txId) throw new Error("Transaction id missing in attachEmptyTxCommentsType");
+
+    const updateActions = [
+      {
+        action: 'setTransactionCustomType',
+        transactionId: txId, 
+        type: {
+          typeId: 'type', 
+          key: 'novalnet-transaction-comments'
+        },
+        fields: {
+          transactionComments 
+        }
+      }
+    ];
+    
+    console.log('Sending Payment Update Request with actions:', JSON.stringify(updateActions, null, 2));
+    
     try {
-      const attachResult = await this.attachTransactionComments(this.ctPaymentService,  parsedData.ctPaymentId, pspReference, transactionComments);
-      log.info("attachTransactionComments result:", attachResult);
-    } catch (err) {
-      log.error("attachTransactionComments threw:", err);
-      // decide whether to fail the overall flow or continue — optional
+      await this.ctPaymentService.updatePayment({
+        id: parsedData.ctPaymentId,
+        actions: updateActions
+      });
+      console.log('Payment updated successfully!');
+    } catch (error) {
+      console.error('Failed to update Payment:', error.message, error.body);
     }
+    
     return {
       paymentReference: paymentRef,
     };
-  }
+    }
 
   /**
    * Safe helper: call ctPaymentService.updatePayment only when there are actions.
