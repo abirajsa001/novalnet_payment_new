@@ -1,11 +1,12 @@
-import { ClientBuilder } from '@commercetools/sdk-client-v2';
-import { createApiBuilderFromCtpClient } from '@commercetools/platform-sdk';
+import {
+  ClientBuilder,
+  type AuthMiddlewareOptions,
+  type HttpMiddlewareOptions,
+} from "@commercetools/sdk-client-v2";
 
-// //~ const projectKey = process.env.CTP_PROJECT_KEY!;
-// //~ const clientId = process.env.CTP_CLIENT_ID!;
-// //~ const clientSecret = process.env.CTP_CLIENT_SECRET!;
-// //~ const authUrl = process.env.CTP_AUTH_URL!;
-// //~ const apiUrl = process.env.CTP_API_URL!;
+import {
+  createApiBuilderFromCtpClient,
+} from "@commercetools/platform-sdk";
 
 
 const projectKey = 'commercekey';
@@ -14,6 +15,28 @@ const apiUrl = 'https://api.europe-west1.gcp.commercetools.com';
 const clientId = 'zzykDtn0B_bBov_EVqk0Hvo-';
 const clientSecret = '9vrhw1oyV27jiLvlOvQJpR__UVhd6ETy';
 
+const authMiddlewareOptions: AuthMiddlewareOptions = {
+  host: "https://auth.europe-west1.gcp.commercetools.com",
+  projectKey,
+  credentials: {
+    clientId: 'zzykDtn0B_bBov_EVqk0Hvo-',
+    clientSecret: '9vrhw1oyV27jiLvlOvQJpR__UVhd6ETy',
+  },
+};
+
+const httpMiddlewareOptions: HttpMiddlewareOptions = {
+  host: "https://api.europe-west1.gcp.commercetools.com",
+};
+
+const ctpClient = new ClientBuilder()
+  .withClientCredentialsFlow(authMiddlewareOptions)
+  .withHttpMiddleware(httpMiddlewareOptions)
+  .build();
+
+// THIS is your "projectApiRoot"
+export const projectApiRoot = createApiBuilderFromCtpClient(ctpClient)
+  .withProjectKey({ projectKey });
+  
 export function getApiRoot() {
   const client = new ClientBuilder()
     .withProjectKey(projectKey)

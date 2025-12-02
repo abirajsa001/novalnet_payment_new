@@ -340,11 +340,23 @@ export class MockPaymentService extends AbstractPaymentService {
 	log.info(txId);
   log.info(parsedData.ctPaymentId);
   log.info(transactionComments);
-	await this.updateTxComment(
-	  parsedData.ctPaymentId,   
-	  txId,                   
-	  transactionComments       
-	);
+  const updatedPayment = await projectApiRoot
+  .payments()
+  .withId({ ID: parsedData.ctPaymentId })
+  .post({
+    body: {
+      version,
+      actions: [
+        {
+          action: "setTransactionCustomField",
+          transactionId: txId,
+          name: "transactionComments",
+          value: transactionComments,
+        },
+      ],
+    },
+  })
+  .execute();
 
     return {
       paymentReference: paymentRef,
