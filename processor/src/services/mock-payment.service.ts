@@ -363,7 +363,13 @@ export class MockPaymentService extends AbstractPaymentService {
     },
   })
   .execute();
-
+  const comment = await this.getTransactionComment(
+    parsedData.ctPaymentId,
+    parsedData.pspReference
+  );
+  
+  console.log(comment);
+  
     return {
       paymentReference: paymentRef,
     };
@@ -811,11 +817,44 @@ if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
       } as unknown as any,
     } as any);
 
-
+    const comment = await this.getTransactionComment(
+      ctPayment.id,
+      pspReference
+    );
+    
+    console.log(comment);
+    
     // return payment id (ctPayment was created earlier; no inline/custom update)
     return {
       paymentReference: ctPayment.id,
     };
+  }
+
+  public async getTransactionComment(paymentId: string, pspReference: string) {
+
+    // 1) Fetch payment from commercetools
+    const response = await projectApiRoot
+      .payments()
+      .withId({ ID: paymentId })
+      .get()
+      .execute();
+  
+    const payment = response.body;
+  
+    // 2) Find the transaction using interactionId (pspReference)
+    const tx = payment.transactions?.find(
+      (t: any) =>
+        t.interactionId === pspReference ||
+        String(t.interactionId) === String(pspReference)
+    );
+  
+    if (!tx) throw new Error("Transaction not found");
+  
+    // 3) If transaction has custom fields, extract the value
+    const comment =
+      tx.custom?.fields?.transactionComments ?? null;
+  
+    return comment;
   }
 
   public async createPayments(
