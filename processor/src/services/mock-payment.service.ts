@@ -821,9 +821,9 @@ if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
       ctPayment.id,
       pspReference
     );
-    
-    console.log(comment);
-    
+    log.info('comment-updated');
+    log.info(comment);
+    log.info('comment-updated-after');
     // return payment id (ctPayment was created earlier; no inline/custom update)
     return {
       paymentReference: ctPayment.id,
