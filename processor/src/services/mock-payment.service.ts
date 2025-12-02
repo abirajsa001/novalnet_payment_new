@@ -338,6 +338,8 @@ export class MockPaymentService extends AbstractPaymentService {
 	const txId = tx.id;
 	if (!txId) throw new Error('Transaction missing id');
 	log.info(txId);
+  log.info(parsedData.ctPaymentId);
+  log.info(transactionComments);
 	await this.updateTxComment(
 	  parsedData.ctPaymentId,   
 	  txId,                   
