@@ -332,6 +332,7 @@ export class MockPaymentService extends AbstractPaymentService {
     log.info("psp reference for redirect:", pspReference);
 	const raw = await this.ctPaymentService.getPayment({ id: parsedData.ctPaymentId } as any);
 	const payment = (raw as any)?.body ?? raw;
+  const version = payment.version;
 	const tx = payment.transactions?.find((t: any) =>
 	  t.interactionId === parsedData.pspReference
 	);
