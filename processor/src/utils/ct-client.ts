@@ -32,29 +32,3 @@ export function getApiRoot() {
 
 
 
-
-
-
-
-// export function getApiRoot() {
-//   return {
-//     orders: () => ({
-//       withOrderNumber: ({ orderNumber }: { orderNumber: string }) => ({
-//         get: () => ({
-//           execute: async () => {
-//             console.log(`Mock fetching order for orderNumber: ${orderNumber}`);
-//             // Simulate an API response
-//             return {
-//               body: {
-//                 id: 'mock-order-id-123',
-//                 orderNumber,
-//                 status: 'Mocked',
-//               },
-//             };
-//           },
-//         }),
-//       }),
-//     }),
-//   };
-// }
-

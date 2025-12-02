@@ -329,36 +329,48 @@ export class MockPaymentService extends AbstractPaymentService {
     log.info("Payment transactionComments for redirect:", transactionComments);
     log.info("ctPayment id for redirect:", parsedData?.ctPaymentId);
     log.info("psp reference for redirect:", pspReference);
-	const raw = await this.ctPaymentService.getPayment({ id: parsedData?.ctPaymentId } as any);
-	const payment: any = (raw as any)?.body ?? raw;
-	const paymentId = parsedData.ctPaymentId;
-	const version = payment?.version;
-	const transactions: any[] = payment?.transactions ?? [];
-	if (!transactions.length) throw new Error('No transactions on payment');
-
-	const tx = transactions.find((t:any) => t.interactionId === pspReference || String(t.interactionId) === String(pspReference));
-	if (!tx) throw new Error('Transaction not found');
+	const raw = await this.ctPaymentService.getPayment({ id: parsedData.ctPaymentId } as any);
+	const payment = (raw as any)?.body ?? raw;
+	const tx = payment.transactions?.find((t: any) =>
+	  t.interactionId === parsedData.pspReference
+	);
+	if (!tx) throw new Error("Transaction not found");
 	const txId = tx.id;
 	if (!txId) throw new Error('Transaction missing id');
 	log.info(txId);
-    const updatedPayment = await this.ctPaymentService.updatePayment({
-      id: payment.id,
-      version,
-      actions: [
-        {
-          action: "setTransactionCustomField",
-          name: "transactionComments",
-          value: transactionComments,
-          transactionId: txId,   
-        }
-      ]
-    }as any);
-    
+	await this.updateTxComment(
+	  parsedData.ctPaymentId,   
+	  txId,                   
+	  transactionComments       
+	);
 
     return {
       paymentReference: paymentRef,
     };
     }
+
+public async updateTxComment(paymentId: string, txId: string, comment: string) {
+
+  const raw = await this.ctPaymentService.getPayment({ id: paymentId } as any);
+  const payment = (raw as any)?.body ?? raw;
+
+  const ctClient = (this.ctPaymentService as any).client;
+  const version = payment.version;
+
+  return await ctClient.payments().withId({ ID: paymentId }).post({
+    body: {
+      version,
+      actions: [
+        {
+          action: "setTransactionCustomField",
+          transactionId: txId,
+          name: "transactionComments",
+          value: comment
+        }
+      ]
+    }
+  }).execute();
+}
 
   /**
    * Safe helper: call ctPaymentService.updatePayment only when there are actions.
