@@ -48,6 +48,7 @@ import { log } from "../libs/logger";
 import * as Context from "../libs/fastify/context/context";
 import { ExtendedUpdatePayment } from './types/payment-extension';
 import { createTransactionCommentsType } from '../utils/custom-fields';
+import { projectApiRoot } from '../utils/ct-client';
 
 type NovalnetConfig = {
   testMode: string;
