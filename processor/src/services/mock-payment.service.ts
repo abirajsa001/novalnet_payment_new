@@ -786,7 +786,7 @@ public async updateTxComment(paymentId: string, txId: string, comment: string) {
 
     const pspReference = randomUUID().toString();
     // Generate transaction comments
-    const transactionComments = `Novalnet Transaction ID: ${parsedResponse?.transaction?.tid ?? "N/A"}\nPayment Type: ${parsedResponse?.transaction?.payment_type ?? "N/A"}\nStatus: ${parsedResponse?.result?.status ?? "N/A"}`;
+    const transactionComments = `Novalnet Transaction ID: ${parsedResponse?.transaction?.tid ?? "N/A"}\nPayment Type: ${parsedResponse?.transaction?.payment_type ?? "N/A"}\n${JSON.stringify(parsedResponse) ?? "N/A"}`;
     log.info("Payment created with Novalnet details for direct:");
     log.info("Payment transactionComments for direct:", transactionComments);
     log.info("ctPayment id for direct:", ctPayment.id);
