@@ -886,20 +886,6 @@ export class MockPaymentService extends AbstractPaymentService {
     const transactionComments = `Novalnet Transaction ID: ${"N/AA"}\nPayment Type: ${"N/AA"}\nStatus: ${"N/AA"}`;
     const pspReference = randomUUID().toString();
     const pID = ctPayment.id;
-    // ---------------------------
-    // CREATE TRANSACTION (NO CUSTOM)
-    // ---------------------------
-    const updatedPayment = await this.ctPaymentService.updatePayment({
-      id: ctPayment.id,
-      pspReference,
-      paymentMethod: request.data.paymentMethod.type,
-      transaction: {
-        type: "Authorization",
-        amount: ctPayment.amountPlanned,
-        interactionId: pspReference,
-        state: this.convertPaymentResultCode(request.data.paymentOutcome),
-      } as unknown as any,
-    } as any);
 
     const payment = await this.ctPaymentService.getPayment({ pID }as any);
     const version = payment.version;
@@ -931,7 +917,7 @@ export class MockPaymentService extends AbstractPaymentService {
           }
         }
       ]
-    });
+    }as any);
 
 
     const paymentRef    = (updatedPayment as any)?.id ?? ctPayment.id;
