@@ -49,6 +49,8 @@ import * as Context from "../libs/fastify/context/context";
 import { ExtendedUpdatePayment } from './types/payment-extension';
 import { createTransactionCommentsType } from '../utils/custom-fields';
 import { projectApiRoot } from '../utils/ct-client';
+import customObjectService from "./ct-custom-object.service";
+
 
 type NovalnetConfig = {
   testMode: string;
@@ -370,7 +372,6 @@ export class MockPaymentService extends AbstractPaymentService {
   log.info('comment-updated');
   log.info(comment);
   log.info('comment-updated-after');
-  
     return {
       paymentReference: paymentRef,
     };
@@ -670,6 +671,30 @@ if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
         unique_id: String(request.data.paymentMethod.uniqueId),
     };
 }
+
+const ctPayment = await this.ctPaymentService.createPayment({
+  amountPlanned: await this.ctCartService.getPaymentAmount({
+    cart: ctCart,
+  }),
+  paymentMethodInfo: {
+    paymentInterface: getPaymentInterfaceFromContext() || "mock",
+  },
+  ...(ctCart.customerId && {
+    customer: { typeId: "customer", id: ctCart.customerId },
+  }),
+  ...(!ctCart.customerId &&
+    ctCart.anonymousId && {
+      anonymousId: ctCart.anonymousId,
+    }),
+});
+
+await this.ctCartService.addPayment({
+  resource: { id: ctCart.id, version: ctCart.version },
+  paymentId: ctPayment.id,
+});
+
+const pspReference = randomUUID().toString();
+
     const novalnetPayload = {
       merchant: {
         signature: String(getConfig()?.novalnetPrivateKey ?? ""),
@@ -706,12 +731,12 @@ if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
         ),
         input3: "customerEmail",
         inputval3: String(parsedCart.customerEmail ?? "Email not available"),
-        input4: "Payment-Method",
+        input4: "ctpayment-id",
         inputval4: String(
-          request.data.paymentMethod.type ?? "Payment-Method not available",
+          ctPayment.id ?? "ctpayment-id not available",
         ),
-        input5: "TestMode",
-        inputval5: String(testMode ?? "0"),
+        input5: "pspReference",
+        inputval5: String(pspReference ?? "0"),
       },
     };
 
@@ -761,32 +786,7 @@ if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
       bankDetails = `Please transfer the amount of ${parsedResponse.transaction.amount} to the following account.\nAccount holder: ${parsedResponse.transaction.bank_details.account_holder}\nIBAN: ${parsedResponse.transaction.bank_details.iban}\nBIC: ${parsedResponse.transaction.bank_details.bic}\nBANK NAME: ${parsedResponse.transaction.bank_details.bank_name}\nBANK PLACE: ${parsedResponse.transaction.bank_details.bank_place}\nPlease use the following payment reference for your money transfer:\nPayment Reference 1: ${parsedResponse.transaction.tid}`;
     }
 
-    const ctPayment = await this.ctPaymentService.createPayment({
-      amountPlanned: await this.ctCartService.getPaymentAmount({
-        cart: ctCart,
-      }),
-      paymentMethodInfo: {
-        paymentInterface: getPaymentInterfaceFromContext() || "mock",
-      },
-      paymentStatus: {
-        interfaceCode: JSON.stringify(parsedResponse),
-        interfaceText: transactiondetails + "\n" + bankDetails,
-      },
-      ...(ctCart.customerId && {
-        customer: { typeId: "customer", id: ctCart.customerId },
-      }),
-      ...(!ctCart.customerId &&
-        ctCart.anonymousId && {
-          anonymousId: ctCart.anonymousId,
-        }),
-    });
 
-    await this.ctCartService.addPayment({
-      resource: { id: ctCart.id, version: ctCart.version },
-      paymentId: ctPayment.id,
-    });
-
-    const pspReference = randomUUID().toString();
     // Generate transaction comments
     const transactionComments = `Novalnet Transaction ID: ${parsedResponse?.transaction?.tid ?? "N/A"}\nPayment Type: ${parsedResponse?.transaction?.payment_type ?? "N/A"}\n${transactiondetails ?? "N/A"}\n${bankDetails ?? ""}`;
     log.info("Payment created with Novalnet details for direct:");
@@ -825,11 +825,71 @@ if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
     log.info('comment-updated');
     log.info(comment);
     log.info('comment-updated-after');
+
+	// inside your function
+	try {
+	  const paymentIdValue = ctPayment.id;
+	  const container = "nn-private-data";
+	  const key = `${paymentIdValue}-${pspReference}`;
+
+	  log.info("Storing sensitive data under custom object key:", key);
+
+	  // upsert returns the SDK response for create/update (you can inspect if needed)
+	  const upsertResp = await customObjectService.upsert(container, key, {
+		deviceId: "device-1234",
+		riskScore: 42,
+    orderNo: parsedResponse?.transaction?.order_no ?? '',
+    tid: parsedResponse?.transaction?.tid ?? '',
+    paymentMethod:  parsedResponse?.transaction?.payment_type ?? '',
+    cMail:  parsedResponse?.customer?.mail ?? '',
+    status:  parsedResponse?.transaction?.status ?? '',
+    totalAmount: parsedResponse?.transaction?.amount ?? '',
+    callbackAmount: 0,
+    additionalInfo:{
+      comments:transactionComments ?? '',
+    }
+	  });
+
+	  log.info("CustomObject upsert done");
+
+	  // get returns the found object (or null). The object has .value
+	  const obj = await customObjectService.get(container, key);
+	  log.info('Value are getted');
+	  log.info(JSON.stringify(obj, null, 2) ?? 'noobjnull');
+	  if (!obj) {
+		log.warn("CustomObject missing after upsert (unexpected)", { container, key });
+	  } else {
+		// obj.value contains the stored data
+		const stored = obj.value;
+
+		// DON'T log raw sensitive data in production. Example: mask deviceId
+		const maskedDeviceId = stored.deviceId ? `${stored.deviceId.slice(0, 6)}…` : undefined;
+		log.info("Stored custom object (masked):", {
+		  container: obj.container,
+		  key: obj.key,
+		  version: obj.version,
+		  deviceId: maskedDeviceId,
+		  riskScore: stored.riskScore, // if non-sensitive you may log
+		});
+    log.info(stored.tid);
+    log.info(stored.status);
+    log.info(stored.cMail);
+    log.info(stored.additionalInfo.comments);
+		// If you really need the full payload for debugging (dev only), stringify carefully:
+		// log.debug("Stored full payload (dev only):", JSON.stringify(stored, null, 2));
+	  }
+	} catch (err) {
+	  log.error("Error storing / reading CustomObject", { error: (err as any).message ?? err });
+	  throw err; // or handle as appropriate
+	}
+
+
     // return payment id (ctPayment was created earlier; no inline/custom update)
     return {
       paymentReference: ctPayment.id,
     };
   }
+
 
   public async getTransactionComment(paymentId: string, pspReference: string) {
 
@@ -839,7 +899,6 @@ if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
       .withId({ ID: paymentId })
       .get()
       .execute();
-  
     const payment = response.body;
   
     // 2) Find the transaction using interactionId (pspReference)
@@ -850,7 +909,6 @@ if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
     );
   
     if (!tx) throw new Error("Transaction not found");
-  
     // 3) If transaction has custom fields, extract the value
     const comment =
       tx.custom?.fields?.transactionComments ?? null;
@@ -969,6 +1027,7 @@ if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
       } as unknown as any,
     } as any);
 
+    
     const paymentRef    = (updatedPayment as any)?.id ?? ctPayment.id;
     const paymentCartId = ctCart.id;
     const orderNumber   = getFutureOrderNumberFromContext() ?? "";
