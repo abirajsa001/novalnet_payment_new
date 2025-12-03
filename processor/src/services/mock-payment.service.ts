@@ -367,8 +367,9 @@ export class MockPaymentService extends AbstractPaymentService {
     parsedData.ctPaymentId,
     parsedData.pspReference
   );
-  
-  console.log(comment);
+  log.info('comment-updated');
+  log.info(comment);
+  log.info('comment-updated-after');
   
     return {
       paymentReference: paymentRef,
