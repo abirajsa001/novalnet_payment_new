@@ -51,6 +51,7 @@ import {
               label: { en: "Transaction Comments" },
               type: { name: "String" },
               required: false,
+              inputHint: "Hidden",
             },
           ],
         },
