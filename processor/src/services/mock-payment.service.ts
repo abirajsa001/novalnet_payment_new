@@ -364,7 +364,7 @@ export class MockPaymentService extends AbstractPaymentService {
         },
         {
           action: "setStatusInterfaceCode",
-          interfaceCode: statusCode
+          interfaceCode: String(statusCode)
         }
       ],
     },
@@ -894,7 +894,7 @@ const pspReference = randomUUID().toString();
         actions: [
           {
             action: "setStatusInterfaceCode",
-            interfaceCode: statusCode
+            interfaceCode: String(statusCode)
           }
         ],
       },
