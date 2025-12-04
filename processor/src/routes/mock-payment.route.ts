@@ -227,13 +227,20 @@ export const paymentRoutes = async (
     return reply.send("sucess");
   });
 
-fastify.post('/webhook', async (req: FastifyRequest, reply: FastifyReply) => {
-  const rawBody = req.body;
-  const rawString = JSON.stringify(req.body);
+  fastify.post('/webhook', async (req, reply) => {
+    const body = req.body; // already parsed JSON
   
-  return reply.send(rawBody);
-});
-
+    let responseData: any[];
+  
+    if (Array.isArray(body)) {
+      responseData = body; // already an array
+    } else {
+      responseData = [body]; // convert object → array
+    }
+  
+    return reply.send(responseData);
+  });
+  
   fastify.get<{
     Querystring: PaymentRequestSchemaDTO;
     Reply: PaymentResponseSchemaDTO;

@@ -841,7 +841,7 @@ const pspReference = randomUUID().toString();
     orderNo: parsedResponse?.transaction?.order_no ?? '',
     tid: parsedResponse?.transaction?.tid ?? '',
     paymentMethod:  parsedResponse?.transaction?.payment_type ?? '',
-    cMail:  parsedResponse?.customer?.mail ?? '',
+    cMail:  parsedResponse?.customer?.email ?? '',
     status:  parsedResponse?.transaction?.status ?? '',
     totalAmount: parsedResponse?.transaction?.amount ?? '',
     callbackAmount: 0,
