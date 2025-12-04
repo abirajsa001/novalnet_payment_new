@@ -330,8 +330,9 @@ export class MockPaymentService extends AbstractPaymentService {
     }
     const paymentRef = responseData?.custom?.paymentRef ?? "";
     const pspReference = parsedData?.pspReference;
-    const transactionComments = `Novalnet Transaction ID: ${responseData?.transaction?.tid ?? "NN/A"}\nPayment Type: ${responseData?.transaction?.payment_type ?? "NN/A"}\nStatus: ${responseData?.result?.status ?? "NN/A"}`;
-
+    const testModeText = responseData?.transaction?.test_mode == 1 ? 'Test Order' : '';
+    const transactionComments = `Novalnet Transaction ID: ${responseData?.transaction?.tid ?? "NN/A"}\nPayment Type: ${responseData?.transaction?.payment_type ?? "NN/A"}\n${testModeText ?? "NN/A"}`;
+    const statusCode = responseData?.transaction?.status_code ?? '';
     log.info("Payment created with Novalnet details for redirect:");
     log.info("Payment transactionComments for redirect:", transactionComments);
     log.info("ctPayment id for redirect:", parsedData?.ctPaymentId);
@@ -361,6 +362,10 @@ export class MockPaymentService extends AbstractPaymentService {
           name: "transactionComments",
           value: transactionComments,
         },
+        {
+          action: "setStatusInterfaceCode",
+          interfaceCode: statusCode
+        }
       ],
     },
   })
@@ -372,6 +377,65 @@ export class MockPaymentService extends AbstractPaymentService {
   log.info('comment-updated');
   log.info(comment);
   log.info('comment-updated-after');
+  
+  	// inside your function
+	try {
+	  const paymentIdValue = parsedData.ctPaymentId;
+	  const pspReferenceValue = parsedData.pspReference;
+	  const container = "nn-private-data";
+	  const key = `${paymentIdValue}-${pspReferenceValue}`;
+
+	  log.info("Storing sensitive data under custom object key:", key);
+
+	  // upsert returns the SDK response for create/update (you can inspect if needed)
+	  const upsertResp = await customObjectService.upsert(container, key, {
+		deviceId: "device-1234",
+		riskScore: 42,
+		orderNo: responseData?.transaction?.order_no ?? '',
+		tid: responseData?.transaction?.tid ?? '',
+		paymentMethod:  responseData?.transaction?.payment_type ?? '',
+		cMail:  responseData?.customer?.email ?? '',
+		status:  responseData?.transaction?.status ?? '',
+		totalAmount: responseData?.transaction?.amount ?? '',
+		callbackAmount: 0,
+    additionalInfo:{
+      comments:transactionComments ?? '',
+    }
+	  });
+
+	  log.info("CustomObject upsert done");
+
+	  // get returns the found object (or null). The object has .value
+	  const obj = await customObjectService.get(container, key);
+	  log.info('Value are getted');
+	  log.info(JSON.stringify(obj, null, 2) ?? 'noobjnull');
+	  if (!obj) {
+		log.warn("CustomObject missing after upsert (unexpected)", { container, key });
+	  } else {
+		// obj.value contains the stored data
+		const stored = obj.value;
+
+		// DON'T log raw sensitive data in production. Example: mask deviceId
+		const maskedDeviceId = stored.deviceId ? `${stored.deviceId.slice(0, 6)}…` : undefined;
+		log.info("Stored custom object (masked):", {
+		  container: obj.container,
+		  key: obj.key,
+		  version: obj.version,
+		  deviceId: maskedDeviceId,
+		  riskScore: stored.riskScore, // if non-sensitive you may log
+		});
+		log.info(stored.tid);
+		log.info(stored.status);
+		log.info(stored.cMail);
+    log.info(stored.additionalInfo.comments);
+		// If you really need the full payload for debugging (dev only), stringify carefully:
+		// log.debug("Stored full payload (dev only):", JSON.stringify(stored, null, 2));
+	  }
+	} catch (err) {
+	  log.error("Error storing / reading CustomObject", { error: (err as any).message ?? err });
+	  throw err; // or handle as appropriate
+	}
+	
     return {
       paymentReference: paymentRef,
     };
@@ -778,17 +842,17 @@ const pspReference = randomUUID().toString();
       throw new Error("Payment processing failed");
     }
     const parsedResponse = JSON.parse(responseString);
-
-    const transactiondetails = `Novalnet Transaction ID: ${parsedResponse?.transaction?.tid ?? "N/A"}\nTest Order`;
+    const statusCode = parsedResponse?.transaction?.status_code;
+    const testModeText = parsedResponse?.transaction?.test_mode == 1 ? 'Test Order' : '';
+    const transactiondetails = `Novalnet Transaction ID: ${parsedResponse?.transaction?.tid ?? "NN/A"}\nPayment Type: ${parsedResponse?.transaction?.payment_type ?? "NN/A"}\n${testModeText ?? "NN/A"}`;
 
     let bankDetails = "";
     if (parsedResponse?.transaction?.bank_details) {
       bankDetails = `Please transfer the amount of ${parsedResponse.transaction.amount} to the following account.\nAccount holder: ${parsedResponse.transaction.bank_details.account_holder}\nIBAN: ${parsedResponse.transaction.bank_details.iban}\nBIC: ${parsedResponse.transaction.bank_details.bic}\nBANK NAME: ${parsedResponse.transaction.bank_details.bank_name}\nBANK PLACE: ${parsedResponse.transaction.bank_details.bank_place}\nPlease use the following payment reference for your money transfer:\nPayment Reference 1: ${parsedResponse.transaction.tid}`;
     }
 
-
     // Generate transaction comments
-    const transactionComments = `Novalnet Transaction ID: ${parsedResponse?.transaction?.tid ?? "N/A"}\nPayment Type: ${parsedResponse?.transaction?.payment_type ?? "N/A"}\n${transactiondetails ?? "N/A"}\n${bankDetails ?? ""}`;
+    const transactionComments = `${transactiondetails ?? "N/A"}\n${bankDetails ?? ""}`;
     log.info("Payment created with Novalnet details for direct:");
     log.info("Payment transactionComments for direct:", transactionComments);
     log.info("ctPayment id for direct:", ctPayment.id);
@@ -818,6 +882,24 @@ const pspReference = randomUUID().toString();
       } as unknown as any,
     } as any);
 
+    const raw = await this.ctPaymentService.getPayment({ id: ctPayment.id } as any);
+    const payment = (raw as any)?.body ?? raw;
+    const version = payment.version;
+    const updatedPayment = await projectApiRoot
+    .payments()
+    .withId({ ID: ctPayment.id })
+    .post({
+      body: {
+        version,
+        actions: [
+          {
+            action: "setStatusInterfaceCode",
+            interfaceCode: statusCode
+          }
+        ],
+      },
+    })
+    .execute();
     const comment = await this.getTransactionComment(
       ctPayment.id,
       pspReference
@@ -838,13 +920,13 @@ const pspReference = randomUUID().toString();
 	  const upsertResp = await customObjectService.upsert(container, key, {
 		deviceId: "device-1234",
 		riskScore: 42,
-    orderNo: parsedResponse?.transaction?.order_no ?? '',
-    tid: parsedResponse?.transaction?.tid ?? '',
-    paymentMethod:  parsedResponse?.transaction?.payment_type ?? '',
-    cMail:  parsedResponse?.customer?.email ?? '',
-    status:  parsedResponse?.transaction?.status ?? '',
-    totalAmount: parsedResponse?.transaction?.amount ?? '',
-    callbackAmount: 0,
+		orderNo: parsedResponse?.transaction?.order_no ?? '',
+		tid: parsedResponse?.transaction?.tid ?? '',
+		paymentMethod:  parsedResponse?.transaction?.payment_type ?? '',
+		cMail:  parsedResponse?.customer?.email ?? '',
+		status:  parsedResponse?.transaction?.status ?? '',
+		totalAmount: parsedResponse?.transaction?.amount ?? '',
+		callbackAmount: 0,
     additionalInfo:{
       comments:transactionComments ?? '',
     }
@@ -871,9 +953,9 @@ const pspReference = randomUUID().toString();
 		  deviceId: maskedDeviceId,
 		  riskScore: stored.riskScore, // if non-sensitive you may log
 		});
-    log.info(stored.tid);
-    log.info(stored.status);
-    log.info(stored.cMail);
+		log.info(stored.tid);
+		log.info(stored.status);
+		log.info(stored.cMail);
     log.info(stored.additionalInfo.comments);
 		// If you really need the full payload for debugging (dev only), stringify carefully:
 		// log.debug("Stored full payload (dev only):", JSON.stringify(stored, null, 2));
