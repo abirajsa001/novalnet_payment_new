@@ -242,8 +242,7 @@ export const paymentRoutes = async (
   
     // Let frontend know this is a failed redirect payment
     redirectUrl.searchParams.set("redirect_status", "failed");
-  
-    return reply.redirect(302, redirectUrl.toString());
+    return reply.code(302).redirect(redirectUrl.toString());
   });
   
 
