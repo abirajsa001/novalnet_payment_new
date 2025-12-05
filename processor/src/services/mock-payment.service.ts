@@ -1123,6 +1123,14 @@ const pspReference = randomUUID().toString();
     url.searchParams.append("pspReference", pspReference);
     const returnUrl = url.toString();
     
+    const urlFailure = new URL("/failure", processorURL);
+    urlFailure.searchParams.append("paymentReference", paymentRef);
+    urlFailure.searchParams.append("ctsid", sessionId);
+    urlFailure.searchParams.append("orderNumber", orderNumber);
+    urlFailure.searchParams.append("ctPaymentID", ctPaymentId);
+    urlFailure.searchParams.append("pspReference", pspReference);
+    const errorReturnUrl = urlFailure.toString();
+
     const ReturnurlContext = getMerchantReturnUrlFromContext();
     const novalnetPayload = {
       merchant: {
@@ -1154,7 +1162,7 @@ const pspReference = randomUUID().toString();
         amount: String(parsedCart?.taxedPrice?.totalGross?.centAmount ?? "100"),
         currency: String(parsedCart?.taxedPrice?.totalGross?.currencyCode ?? "EUR"),
         return_url: returnUrl,
-        error_return_url: returnUrl,
+        error_return_url: errorReturnUrl,
         create_token: 1,
       },
       hosted_page: {
