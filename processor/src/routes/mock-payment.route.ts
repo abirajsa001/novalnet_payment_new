@@ -214,14 +214,38 @@ export const paymentRoutes = async (
 
   fastify.get("/failure", async (request, reply) => {
     const query = request.query as {
-      tid?: string;
-      status?: string;
       paymentReference?: string;
+      ctsid?: string;
+      orderNumber?: string;
+      ctPaymentID?: string;
+      pspReference?: string;
     };
-
-    const thirdPartyUrl = 'https://poc-novalnetpayments.frontend.site/en/checkout';
-    return reply.code(302).redirect(thirdPartyUrl);
+  
+    const baseUrl = "https://poc-novalnetpayments.frontend.site/checkout";
+    const redirectUrl = new URL(baseUrl);
+  
+    if (query.paymentReference) {
+      redirectUrl.searchParams.set("paymentReference", query.paymentReference);
+    }
+    if (query.ctsid) {
+      redirectUrl.searchParams.set("ctsid", query.ctsid);
+    }
+    if (query.orderNumber) {
+      redirectUrl.searchParams.set("orderNumber", query.orderNumber);
+    }
+    if (query.ctPaymentID) {
+      redirectUrl.searchParams.set("ctPaymentID", query.ctPaymentID);
+    }
+    if (query.pspReference) {
+      redirectUrl.searchParams.set("pspReference", query.pspReference);
+    }
+  
+    // Let frontend know this is a failed redirect payment
+    redirectUrl.searchParams.set("redirect_status", "failed");
+  
+    return reply.redirect(302, redirectUrl.toString());
   });
+  
 
   fastify.get("/callback", async (request, reply) => {
     return reply.send("sucess");
