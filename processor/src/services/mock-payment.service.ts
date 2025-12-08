@@ -965,6 +965,9 @@ const pspReference = randomUUID().toString();
 	  throw err; // or handle as appropriate
 	}
 
+  if(parsedResponse?.transaction?.status == 'FAILURE') {
+    throw new Error(parsedResponse?.transaction?.status_text);
+  }
 
     // return payment id (ctPayment was created earlier; no inline/custom update)
     return {
@@ -972,6 +975,54 @@ const pspReference = randomUUID().toString();
     };
   }
 
+  public async failureResponse({ data }: { data: any }) {
+    const parsedData = typeof data === "string" ? JSON.parse(data) : data;
+    const config = getConfig();
+    await createTransactionCommentsType();
+    log.info("Failure Response inserted");
+    const raw = await this.ctPaymentService.getPayment({ id: parsedData.ctPaymentID } as any);
+    const payment = (raw as any)?.body ?? raw;
+    const version = payment.version;
+    const tx = payment.transactions?.find((t: any) =>
+      t.interactionId === parsedData.pspReference
+    );
+    if (!tx) throw new Error("Transaction not found");
+    const txId = tx.id;
+    if (!txId) throw new Error('Transaction missing id');
+    const transactionComments = `Novalnet Transaction ID:\nPayment Type:\nTestOrder`;
+    log.info(txId);
+    log.info(parsedData.ctPaymentID); 
+    log.info(transactionComments);
+    
+// 1) Get latest cart (version changed after addPayment)
+const latestCartRaw = await this.ctCartService.getCart({ id: ctCart.id } as any);
+const latestCart = (latestCartRaw as any)?.body ?? latestCartRaw;
+
+// 2) Remove the payment from the cart
+await this.ctCartService.removePayment({
+  resource: { id: latestCart.id, version: latestCart.version },
+  paymentId: parsedData.ctPaymentID,
+});
+
+// 3) Get latest payment version
+const paymentResp = await projectApiRoot
+  .payments()
+  .withId({ ID: parsedData.ctPaymentID })
+  .get()
+  .execute();
+
+const paymentVersion = paymentResp.body.version;
+
+// 4) Delete the payment
+await projectApiRoot
+  .payments()
+  .withId({ ID: parsedData.ctPaymentID })
+  .delete({
+    queryArgs: { version: paymentVersion },
+  })
+  .execute();
+
+  } 
 
   public async getTransactionComment(paymentId: string, pspReference: string) {
 
