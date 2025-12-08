@@ -972,7 +972,7 @@ const pspReference = randomUUID().toString();
     // return payment id (ctPayment was created earlier; no inline/custom update)
     return {
       paymentReference: ctPayment.id,
-    };
+    }as any;
   }
 
   public async failureResponse({ data }: { data: any }) {
@@ -994,36 +994,56 @@ const pspReference = randomUUID().toString();
     log.info(parsedData.ctPaymentID); 
     log.info(transactionComments);
     
-// 1) Get latest cart (version changed after addPayment)
-const latestCartRaw = await this.ctCartService.getCart({ id: ctCart.id } as any);
-const latestCart = (latestCartRaw as any)?.body ?? latestCartRaw;
+	try {
+      // 1) Get latest cart (version may have changed after addPayment)
+      const latestCartRaw = await this.ctCartService.getCart({
+        id: parsedData.ctPaymentID,
+      } as any);
+      const latestCart = (latestCartRaw as any)?.body ?? latestCartRaw;
 
-// 2) Remove the payment from the cart
-await this.ctCartService.removePayment({
-  resource: { id: latestCart.id, version: latestCart.version },
-  paymentId: parsedData.ctPaymentID,
-});
+      // 2) Remove the payment from the cart
+      await projectApiRoot
+        .carts()
+        .withId({ ID: latestCart.id })
+        .post({
+          body: {
+            version: latestCart.version,
+            actions: [
+              {
+                action: "removePayment",
+                payment: {
+                  typeId: "payment",
+                  id: parsedData.ctPaymentID,
+                },
+              },
+            ],
+          },
+        })
+        .execute();
 
-// 3) Get latest payment version
-const paymentResp = await projectApiRoot
-  .payments()
-  .withId({ ID: parsedData.ctPaymentID })
-  .get()
-  .execute();
+      // 3) Get latest payment version
+      const paymentResp = await projectApiRoot
+        .payments()
+        .withId({ ID: parsedData.ctPaymentID })
+        .get()
+        .execute();
 
-const paymentVersion = paymentResp.body.version;
+      const paymentVersion = paymentResp.body.version;
 
-// 4) Delete the payment
-await projectApiRoot
-  .payments()
-  .withId({ ID: parsedData.ctPaymentID })
-  .delete({
-    queryArgs: { version: paymentVersion },
-  })
-  .execute();
-
-  } 
-
+      // 4) Delete the payment
+      await projectApiRoot
+        .payments()
+        .withId({ ID: parsedData.ctPaymentID })
+        .delete({
+          queryArgs: { version: paymentVersion },
+        })
+        .execute();
+	  } catch (err) {
+		  log.error("Failed to process payment with Novalnet:", err);
+		  throw new Error("Payment response failed");
+		}
+	}
+	
   public async getTransactionComment(paymentId: string, pspReference: string) {
 
     // 1) Fetch payment from commercetools
