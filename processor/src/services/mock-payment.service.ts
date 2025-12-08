@@ -977,72 +977,100 @@ const pspReference = randomUUID().toString();
 
   public async failureResponse({ data }: { data: any }) {
     const parsedData = typeof data === "string" ? JSON.parse(data) : data;
-    const config = getConfig();
     await createTransactionCommentsType();
     log.info("Failure Response inserted");
-    const raw = await this.ctPaymentService.getPayment({ id: parsedData.ctPaymentID } as any);
+  
+    const paymentId = parsedData.ctPaymentID;
+    const pspReference = parsedData.pspReference;
+  
+    if (!paymentId) {
+      throw new Error("Missing ctPaymentID in failureResponse");
+    }
+  
+    // 1) Load payment (optional, you are already doing this)
+    const raw = await this.ctPaymentService.getPayment({ id: paymentId } as any);
     const payment = (raw as any)?.body ?? raw;
-    const version = payment.version;
-    const tx = payment.transactions?.find((t: any) =>
-      t.interactionId === parsedData.pspReference
+  
+    const tx = payment.transactions?.find(
+      (t: any) =>
+        t.interactionId === pspReference ||
+        String(t.interactionId) === String(pspReference),
     );
     if (!tx) throw new Error("Transaction not found");
     const txId = tx.id;
-    if (!txId) throw new Error('Transaction missing id');
+    if (!txId) throw new Error("Transaction missing id");
+  
     const transactionComments = `Novalnet Transaction ID:\nPayment Type:\nTestOrder`;
     log.info(txId);
-    log.info(parsedData.ctPaymentID); 
+    log.info(paymentId);
     log.info(transactionComments);
-    
-	try {
-      // 1) Get latest cart (version may have changed after addPayment)
-      const latestCartRaw = await this.ctCartService.getCart({
-        id: parsedData.ctPaymentID,
-      } as any);
-      const latestCart = (latestCartRaw as any)?.body ?? latestCartRaw;
-
-      // 2) Remove the payment from the cart
-      await projectApiRoot
+  
+    try {
+      // 2) Find the cart that contains this payment
+      const cartsResp = await projectApiRoot
         .carts()
-        .withId({ ID: latestCart.id })
-        .post({
-          body: {
-            version: latestCart.version,
-            actions: [
-              {
-                action: "removePayment",
-                payment: {
-                  typeId: "payment",
-                  id: parsedData.ctPaymentID,
-                },
-              },
-            ],
+        .get({
+          queryArgs: {
+            // cart where paymentInfo has this payment
+            where: `paymentInfo(payments(id = "${paymentId}"))`,
+            limit: 1,
           },
         })
         .execute();
-
-      // 3) Get latest payment version
+  
+      const cart = cartsResp.body.results[0];
+  
+      if (!cart) {
+        log.warn("No cart found for payment, skipping cart remove", { paymentId });
+      } else {
+        // 3) Remove payment from cart
+        await projectApiRoot
+          .carts()
+          .withId({ ID: cart.id })
+          .post({
+            body: {
+              version: cart.version,
+              actions: [
+                {
+                  action: "removePayment",
+                  payment: {
+                    typeId: "payment",
+                    id: paymentId,
+                  },
+                },
+              ],
+            },
+          })
+          .execute();
+  
+        log.info("Payment removed from cart", { cartId: cart.id, paymentId });
+      }
+  
+      // 4) Get latest payment version
       const paymentResp = await projectApiRoot
         .payments()
-        .withId({ ID: parsedData.ctPaymentID })
+        .withId({ ID: paymentId })
         .get()
         .execute();
-
+  
       const paymentVersion = paymentResp.body.version;
-
-      // 4) Delete the payment
+  
+      // 5) Delete the payment
       await projectApiRoot
         .payments()
-        .withId({ ID: parsedData.ctPaymentID })
+        .withId({ ID: paymentId })
         .delete({
           queryArgs: { version: paymentVersion },
         })
         .execute();
-	  } catch (err) {
-		  log.error("Failed to process payment with Novalnet:", err);
-		  throw new Error("Payment response failed");
-		}
-	}
+  
+      log.info("Payment deleted after failure", { paymentId });
+    } catch (err) {
+      log.error("Failed to clean up payment/cart after failure:", err);
+      throw new Error("Payment failure cleanup failed");
+    }
+  }
+  
 	
   public async getTransactionComment(paymentId: string, pspReference: string) {
 
