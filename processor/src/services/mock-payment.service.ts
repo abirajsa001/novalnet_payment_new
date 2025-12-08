@@ -972,7 +972,7 @@ const pspReference = randomUUID().toString();
     // return payment id (ctPayment was created earlier; no inline/custom update)
     return {
       paymentReference: ctPayment.id,
-    }as any;
+    };
   }
 
   public async failureResponse({ data }: { data: any }) {
