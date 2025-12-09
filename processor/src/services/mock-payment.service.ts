@@ -20,7 +20,7 @@ import {
 import { SupportedPaymentComponentsSchemaDTO } from "../dtos/operations/payment-componets.dto";
 import { PaymentModificationStatus } from "../dtos/operations/payment-intents.dto";
 import packageJSON from "../../package.json";
-
+import { getOrderIdFromOrderNumber } from './order.service';
 import { AbstractPaymentService } from "./abstract-payment.service";
 import { getConfig } from "../config/config";
 import { appLogger, paymentSDK } from "../payment-sdk";
@@ -941,42 +941,46 @@ const pspReference = randomUUID().toString();
       },
     })
     .execute();
-    
-    // 1) Find order by payment
+
+
+    const orderId = await getOrderIdFromOrderNumber(orderNumber);
+// 1) Find order by payment
 const orderResult = await projectApiRoot
-  .orders()
-  .get({
-    queryArgs: {
-      where: `paymentInfo(payments(id = "${ctPayment.id}"))`,
-      limit: 1,
-    },
-  })
-  .execute();
+.orders()
+.get({
+  queryArgs: {
+    where: `paymentInfo(payments(id = "${ctPayment.id}"))`,
+    limit: 1,
+  },
+})
+.execute();
 
 const order = orderResult.body.results[0];
 if (!order) {
-  // handle no-order-found case
-  log.info('No order found for payment', ctPayment.id);
+// handle no-order-found case
+log.info('No order found for payments', ctPayment.id);
 } else {
-  const orderId = order.id;
-
-  // 2) Now you can safely update the order state/paymentState
-  await projectApiRoot
-    .orders()
-    .withId({ ID: orderId })
-    .post({
-      body: {
-        version: order.version,
-        actions: [
-          {
-            action: 'changePaymentState',
-            paymentState: 'Paid',
-          },
-        ],
-      },
-    })
-    .execute();
+const orderIdValue = order.id;
+log.info('order found for payments', ctPayment.id);
+log.info(order.id);
+// 2) Now you can safely update the order state/paymentState
+await projectApiRoot
+  .orders()
+  .withId({ ID: orderId })
+  .post({
+    body: {
+      version: order.version,
+      actions: [
+        {
+          action: 'changePaymentState',
+          paymentState: 'Paid',
+        },
+      ],
+    },
+  })
+  .execute();
 }
+
     const comment = await this.getTransactionComment(
       ctPayment.id,
       pspReference
