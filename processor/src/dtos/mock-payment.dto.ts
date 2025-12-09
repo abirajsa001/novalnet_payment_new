@@ -33,6 +33,9 @@ export enum PaymentMethodType {
 export const PaymentResponseSchema = Type.Object({
   paymentReference: Type.String(),
   txnSecret: Type.Optional(Type.String()),
+  novalnetResponse: Type.Optional(Type.String()),
+  transactionStatus: Type.Optional(Type.String()),
+  transactionStatusText: Type.Optional(Type.String()),
 });
 console.log("mock-payment-dto.ts");
 export const PaymentOutcomeSchema = Type.Enum(PaymentOutcome);

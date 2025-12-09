@@ -30,6 +30,7 @@ export const config = {
   novalnetPublicKey: process.env.NOVALNET_PUBLIC_KEY || "",
   novalnetPrivateKey: process.env.NOVALNET_PRIVATE_KEY!,
   novalnetTariff: process.env.NOVALNET_TARIFF_KEY!,
+  novalnetClientkey: process.env.NOVALNET_CLIENT_KEY!,
   novalnetWebhookURL: process.env.NOVALNET_WEBHOOK_URL!,
 
 

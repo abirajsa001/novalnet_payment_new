@@ -140,7 +140,10 @@ export const paymentRoutes = async (
       const resp = await opts.paymentService.createPayment({
         data: request.body,
       });
-
+      if(resp?.transactionStatus == 'FAILURE') {
+        const baseUrl = "https://poc-novalnetpayments.frontend.site/checkout";
+        return reply.code(302).redirect(baseUrl);
+      }
       return reply.status(200).send(resp);
     },
   );
@@ -219,6 +222,9 @@ export const paymentRoutes = async (
       orderNumber?: string;
       ctPaymentID?: string;
       pspReference?: string;
+      tid?: string;
+      status_text?: string;
+      payment_type?: string;
     };
   
     const baseUrl = "https://poc-novalnetpayments.frontend.site/checkout";
@@ -239,13 +245,17 @@ export const paymentRoutes = async (
     if (query.pspReference) {
       redirectUrl.searchParams.set("pspReference", query.pspReference);
     }
+  
     try {
       const requestData = {
         paymentReference: query.paymentReference,
         ctsid: query.ctsid,
         orderNumber: query.orderNumber,
         ctPaymentID: query.ctPaymentID,
-        pspReference: query.pspReference
+        pspReference: query.pspReference,
+        tid: query.tid ?? 'empty-tid',
+        status_text: query.status_text ?? 'empty-status-text',
+        payment_type: query.payment_type ?? 'empty-payment-type',
       };
     
       // Convert to JSON string

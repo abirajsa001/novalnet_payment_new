@@ -44,6 +44,9 @@ deployAs:
         - key: NOVALNET_TARIFF_KEY
           description: Novalnet Tariff ID
           required: true
+        - key: NOVALNET_CLIENT_KEY
+          description: Novalnet client key
+          required: true
         - key: NOVALNET_WEBHOOK_URL
           description: Novalnet webhook URL for payment notifications
           required: false

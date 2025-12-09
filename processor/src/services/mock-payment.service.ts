@@ -291,6 +291,49 @@ export class MockPaymentService extends AbstractPaymentService {
     return billingAddress;
   }
 
+  public async failureResponse({ data }: { data: any }) {
+    const parsedData = typeof data === "string" ? JSON.parse(data) : data;
+    const config = getConfig();
+    await createTransactionCommentsType();
+    log.info("Failure Response inserted");
+    log.info(parsedData.tid);
+    log.info(parsedData.status_text);
+    log.info(parsedData.payment_type);
+    const raw = await this.ctPaymentService.getPayment({ id: parsedData.ctPaymentID } as any);
+    const payment = (raw as any)?.body ?? raw;
+    const version = payment.version;
+    const tx = payment.transactions?.find((t: any) =>
+      t.interactionId === parsedData.pspReference
+    );
+    if (!tx) throw new Error("Transaction not found");
+    const txId = tx.id;
+    if (!txId) throw new Error('Transaction missing id');
+    const transactionComments = `Novalnet Transaction ID: ${parsedData.tid ?? "NN/A"}\nPayment Type: ${parsedData.payment_type ?? "NN/A"}\n${parsedData.status_text ?? "NN/A"}`;
+    log.info(txId);
+    log.info(parsedData.ctPaymentID);
+    log.info(transactionComments);
+    
+    const updatedPayment = await projectApiRoot
+    .payments()
+    .withId({ ID: parsedData.ctPaymentID })
+    .post({
+      body: {
+        version,
+        actions: [
+          {
+            action: "setTransactionCustomField",
+            transactionId: txId,
+            name: "transactionComments",
+            value: transactionComments,
+          },
+        ],
+      },
+    })
+    .execute();
+
+  }  
+
+
   public async createPaymentt({ data }: { data: any }) {
     const parsedData = typeof data === "string" ? JSON.parse(data) : data;
     const config = getConfig();
@@ -439,13 +482,11 @@ export class MockPaymentService extends AbstractPaymentService {
     return {
       paymentReference: paymentRef,
     };
-    }
+  }
 
 public async updateTxComment(paymentId: string, txId: string, comment: string) {
-
   const raw = await this.ctPaymentService.getPayment({ id: paymentId } as any);
   const payment = (raw as any)?.body ?? raw;
-
   const ctClient = (this.ctPaymentService as any).client;
   const version = payment.version;
 
@@ -893,9 +934,13 @@ const pspReference = randomUUID().toString();
         version,
         actions: [
           {
+            action: "changePaymentState",
+            paymentState: "Paid",
+          }, 
+          {
             action: "setStatusInterfaceCode",
-            interfaceCode: String(statusCode)
-          }
+            interfaceCode: String(statusCode),
+          },
         ],
       },
     })
@@ -964,114 +1009,19 @@ const pspReference = randomUUID().toString();
 	  log.error("Error storing / reading CustomObject", { error: (err as any).message ?? err });
 	  throw err; // or handle as appropriate
 	}
-
-  if(parsedResponse?.transaction?.status == 'FAILURE') {
-    throw new Error(parsedResponse?.transaction?.status_text);
-  }
+  const statusValue = parsedResponse?.transaction?.status;
+  const statusTextValue = parsedResponse?.transaction?.status_text;
 
     // return payment id (ctPayment was created earlier; no inline/custom update)
     return {
       paymentReference: ctPayment.id,
+      novalnetResponse: parsedResponse,  
+      transactionStatus: statusValue,  
+      transactionStatusText: statusTextValue,  
     };
   }
 
-  public async failureResponse({ data }: { data: any }) {
-    const parsedData = typeof data === "string" ? JSON.parse(data) : data;
-    await createTransactionCommentsType();
-    log.info("Failure Response inserted");
-  
-    const paymentId = parsedData.ctPaymentID;
-    const pspReference = parsedData.pspReference;
-  
-    if (!paymentId) {
-      throw new Error("Missing ctPaymentID in failureResponse");
-    }
-  
-    // 1) Load payment (optional, you are already doing this)
-    const raw = await this.ctPaymentService.getPayment({ id: paymentId } as any);
-    const payment = (raw as any)?.body ?? raw;
-  
-    const tx = payment.transactions?.find(
-      (t: any) =>
-        t.interactionId === pspReference ||
-        String(t.interactionId) === String(pspReference),
-    );
-    if (!tx) throw new Error("Transaction not found");
-    const txId = tx.id;
-    if (!txId) throw new Error("Transaction missing id");
-  
-    const transactionComments = `Novalnet Transaction ID:\nPayment Type:\nTestOrder`;
-    log.info(txId);
-    log.info(paymentId);
-    log.info(transactionComments);
-  
-    try {
-      // 2) Find the cart that contains this payment
-      const cartsResp = await projectApiRoot
-        .carts()
-        .get({
-          queryArgs: {
-            // cart where paymentInfo has this payment
-            where: `paymentInfo(payments(id = "${paymentId}"))`,
-            limit: 1,
-          },
-        })
-        .execute();
-  
-      const cart = cartsResp.body.results[0];
-  
-      if (!cart) {
-        log.warn("No cart found for payment, skipping cart remove", { paymentId });
-      } else {
-        // 3) Remove payment from cart
-        await projectApiRoot
-          .carts()
-          .withId({ ID: cart.id })
-          .post({
-            body: {
-              version: cart.version,
-              actions: [
-                {
-                  action: "removePayment",
-                  payment: {
-                    typeId: "payment",
-                    id: paymentId,
-                  },
-                },
-              ],
-            },
-          })
-          .execute();
-  
-        log.info("Payment removed from cart", { cartId: cart.id, paymentId });
-      }
-  
-      // 4) Get latest payment version
-      const paymentResp = await projectApiRoot
-        .payments()
-        .withId({ ID: paymentId })
-        .get()
-        .execute();
-  
-      const paymentVersion = paymentResp.body.version;
-  
-      // 5) Delete the payment
-      await projectApiRoot
-        .payments()
-        .withId({ ID: paymentId })
-        .delete({
-          queryArgs: { version: paymentVersion },
-        })
-        .execute();
-  
-      log.info("Payment deleted after failure", { paymentId });
-    } catch (err) {
-      log.error("Failed to clean up payment/cart after failure:", err);
-      throw new Error("Payment failure cleanup failed");
-    }
-  }
-  
-	
+
   public async getTransactionComment(paymentId: string, pspReference: string) {
 
     // 1) Fetch payment from commercetools
@@ -1179,7 +1129,7 @@ const pspReference = randomUUID().toString();
       resource: { id: ctCart.id, version: ctCart.version },
       paymentId: ctPayment.id,
     });
-
+ 
     // Generate transaction comments
     const transactionComments = `Novalnet Transaction ID: ${"N/A"}\nPayment Type: ${"N/A"}\nStatus: ${"N/A"}`;
     const pspReference = randomUUID().toString();
