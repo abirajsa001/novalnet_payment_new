@@ -943,7 +943,6 @@ const pspReference = randomUUID().toString();
     .execute();
 
 
-    const orderId = await getOrderIdFromOrderNumber(orderNumber);
 // 1) Find order by payment
 const orderResult = await projectApiRoot
 .orders()
@@ -955,7 +954,20 @@ const orderResult = await projectApiRoot
 })
 .execute();
 
-const order = orderResult.body.results[0];
+const orderNumber = getFutureOrderNumberFromContext() ?? "";
+const orderId = await getOrderIdFromOrderNumber(orderNumber);
+const orderIds = String(orderId);
+log.info(orderId);
+if (!orderId) {
+  log.info('No orderId resolved from orderNumber', orderNumber);
+}
+const orderResponse = await projectApiRoot
+  .orders()
+  .withId({ ID: orderIds })   // fetch by ID
+  .get()
+  .execute();
+
+const order = orderResponse.body;
 if (!order) {
 // handle no-order-found case
 log.info('No order found for payments', ctPayment.id);
@@ -963,10 +975,11 @@ log.info('No order found for payments', ctPayment.id);
 const orderIdValue = order.id;
 log.info('order found for payments', ctPayment.id);
 log.info(order.id);
+log.info(order.version);
 // 2) Now you can safely update the order state/paymentState
 await projectApiRoot
   .orders()
-  .withId({ ID: orderId })
+  .withId({ ID: orderIds })
   .post({
     body: {
       version: order.version,
