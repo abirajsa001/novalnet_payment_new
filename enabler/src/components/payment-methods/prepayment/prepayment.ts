@@ -49,8 +49,6 @@ export class Prepayment extends BaseComponent {
     // here we would call the SDK to submit the payment
     this.sdk.init({ environment: this.environment });
     console.log('submit-triggered');
-    const projectKey = __VITE_CTP_PROJECT_KEY__;
-    console.log(projectKey);
     try {
       // start original
  
