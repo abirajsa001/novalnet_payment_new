@@ -934,10 +934,6 @@ const pspReference = randomUUID().toString();
         version,
         actions: [
           {
-            action: "changePaymentState",
-            paymentState: "Paid",
-          }, 
-          {
             action: "setStatusInterfaceCode",
             interfaceCode: String(statusCode),
           },
@@ -945,6 +941,42 @@ const pspReference = randomUUID().toString();
       },
     })
     .execute();
+    
+    // 1) Find order by payment
+const orderResult = await projectApiRoot
+  .orders()
+  .get({
+    queryArgs: {
+      where: `paymentInfo(payments(id = "${ctPayment.id}"))`,
+      limit: 1,
+    },
+  })
+  .execute();
+
+const order = orderResult.body.results[0];
+if (!order) {
+  // handle no-order-found case
+  log.info('No order found for payment', ctPayment.id);
+} else {
+  const orderId = order.id;
+
+  // 2) Now you can safely update the order state/paymentState
+  await projectApiRoot
+    .orders()
+    .withId({ ID: orderId })
+    .post({
+      body: {
+        version: order.version,
+        actions: [
+          {
+            action: 'changePaymentState',
+            paymentState: 'Paid',
+          },
+        ],
+      },
+    })
+    .execute();
+}
     const comment = await this.getTransactionComment(
       ctPayment.id,
       pspReference
