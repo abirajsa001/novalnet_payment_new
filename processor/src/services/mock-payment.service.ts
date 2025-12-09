@@ -941,47 +941,56 @@ const pspReference = randomUUID().toString();
       },
     })
     .execute();
- 
-    const orderNumber = getFutureOrderNumberFromContext() ?? "";
-    log.info(orderNumber);
-    const orderId = await getOrderIdFromOrderNumber(orderNumber);
-    const orderIds = String(orderId);
-    log.info(orderId);
-    if (!orderId) {
-      log.info('No orderId resolved from orderNumber', orderNumber);
-    }
-    const orderResponse = await projectApiRoot
-      .orders()
-      .withId({ ID: orderIds })   // fetch by ID
-      .get()
-      .execute();
 
-    const order = orderResponse.body;
-    if (!order) {
-    // handle no-order-found case
-    log.info('No order found for payments', ctPayment.id);
-    } else {
-    const orderIdValue = order.id;
-    log.info('order found for payments', ctPayment.id);
-    log.info(order.id);
-    log.info(order.version);
-    // 2) Now you can safely update the order state/paymentState
-    await projectApiRoot
-      .orders()
-      .withId({ ID: orderIds })
-      .post({
-        body: {
-          version: order.version,
-          actions: [
-            {
-              action: 'changePaymentState',
-              paymentState: 'Paid',
-            },
-          ],
+log.info('orderNumber');
+const orderNumber = getFutureOrderNumberFromContext() ?? "";
+log.info(orderNumber);
+const orderId = await getOrderIdFromOrderNumber(orderNumber);
+
+log.info(orderId);
+
+if (!orderId) {
+  log.info('No orderId resolved from orderNumber', orderNumber);
+}
+
+// OPTION A: explicit cast
+const orderResponse = await projectApiRoot
+  .orders()
+  .withId({ ID: orderId as string })   // ⬅ cast to string
+  .get()
+  .execute();
+
+// OPTION B: non-null assertion
+// .withId({ ID: orderId! })
+
+const order = orderResponse.body;
+
+if (!order) {
+  log.info('No order found for payments', ctPayment.id);
+}
+
+log.info('order found for payments', ctPayment.id);
+log.info(order.id);
+log.info(order.version);
+
+// update
+await projectApiRoot
+  .orders()
+  .withId({ ID: order.id }) // or (orderId as string)
+  .post({
+    body: {
+      version: order.version,
+      actions: [
+        {
+          action: 'changePaymentState',
+          paymentState: 'Paid',
         },
-      })
-      .execute();
-    }
+      ],
+    },
+  })
+  .execute();
+
+
 
     const comment = await this.getTransactionComment(
       ctPayment.id,
@@ -1010,9 +1019,9 @@ const pspReference = randomUUID().toString();
 		status:  parsedResponse?.transaction?.status ?? '',
 		totalAmount: parsedResponse?.transaction?.amount ?? '',
 		callbackAmount: 0,
-    additionalInfo:{
-      comments:transactionComments ?? '',
-    }
+		additionalInfo:{
+			comments:transactionComments ?? '',
+		}
 	  });
 
 	  log.info("CustomObject upsert done");
