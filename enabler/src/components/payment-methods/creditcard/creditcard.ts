@@ -93,7 +93,9 @@ export class Creditcard extends BaseComponent {
       console.log("PAN HASH:", panhash);
       console.log("UNIQUE ID:", uniqueId);
       console.log("DO REDIRECT:", doRedirect);
-      
+      console.log('client-key');
+      const clientKeyValue = getConfig().novalnetClientkey ?? 'empty';
+      console.log(clientKeyValue);
       if (!panhash || !uniqueId) {
         this.onError("Credit card information is missing or invalid.");
         return;
