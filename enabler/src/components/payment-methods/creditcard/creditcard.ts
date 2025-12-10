@@ -190,7 +190,7 @@ export class Creditcard extends BaseComponent {
       paymentMethod: {
         type: "CREDITCARD",
       },
-      paymentOutcome: 'SUCCESS',
+      paymentOutcome: 'Success',
     };
 
     const response = await fetch(this.processorUrl + "/getconfig", {
@@ -202,10 +202,10 @@ export class Creditcard extends BaseComponent {
       body: JSON.stringify(requestData),
     });
     log.info('client-key-before');
-    log.info(resp);
+    log.info(response);
     const data = await response.json();
     console.log('client-key');
-    console.log(data.paymentReference);
+    console.log(data.paymentReference ?? '');
 
     const configurationObject = {
       callback: {
