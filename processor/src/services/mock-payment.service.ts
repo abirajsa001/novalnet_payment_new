@@ -18,7 +18,6 @@ import {
 } from "./types/operation.type";
 import {
   Address,
-  Cart,
   Customer,
   CustomerSetCustomFieldAction,
   CustomerSetCustomTypeAction,
