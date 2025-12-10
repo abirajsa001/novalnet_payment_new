@@ -784,6 +784,7 @@ const ctPayment = await this.ctPaymentService.createPayment({
   paymentMethodInfo: {
     paymentInterface: getPaymentInterfaceFromContext() || "mock",
   },
+
   ...(ctCart.customerId && {
     customer: { typeId: "customer", id: ctCart.customerId },
   }),
@@ -942,54 +943,26 @@ const pspReference = randomUUID().toString();
     })
     .execute();
 
-log.info('orderNumber');
-const orderNumber = getFutureOrderNumberFromContext() ?? "";
-log.info(orderNumber);
-const orderId = await getOrderIdFromOrderNumber(orderNumber);
-
-log.info(orderId);
-
-if (!orderId) {
-  log.info('No orderId resolved from orderNumber', orderNumber);
-}
-
-// OPTION A: explicit cast
-const orderResponse = await projectApiRoot
-  .orders()
-  .withId({ ID: orderId as string })   // ⬅ cast to string
-  .get()
-  .execute();
-
-// OPTION B: non-null assertion
-// .withId({ ID: orderId! })
-
-const order = orderResponse.body;
-
-if (!order) {
-  log.info('No order found for payments', ctPayment.id);
-}
-
-log.info('order found for payments', ctPayment.id);
-log.info(order.id);
-log.info(order.version);
-
-// update
 await projectApiRoot
-  .orders()
-  .withId({ ID: order.id }) // or (orderId as string)
+  .payments()
+  .withId({ ID: ctPayment.id })
   .post({
     body: {
-      version: order.version,
+      version: ctPayment.version,
       actions: [
         {
-          action: 'changePaymentState',
-          paymentState: 'Paid',
+          action: "transitionState",
+          state: {
+            typeId: "state",
+            // use either id OR key depending on how you reference the state
+            // id: "<actual-state-id>",
+            key: "Initial", // if your state has key "Initial"
+          },
         },
       ],
     },
   })
   .execute();
-
 
 
     const comment = await this.getTransactionComment(
