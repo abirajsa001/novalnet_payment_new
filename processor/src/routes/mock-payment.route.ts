@@ -167,6 +167,8 @@ export const paymentRoutes = async (
       const resp = await opts.paymentService.getConfigValues({
         data: request.body,
       });
+      log.info('getconfigValues route function');
+      log.info(resp);
       return reply.status(200).send(resp);
     },
   );
