@@ -12,6 +12,7 @@ import {
   PaymentRequestSchemaDTO,
 } from "../../../dtos/mock-payment.dto";
 import { BaseOptions } from "../../../payment-enabler/payment-enabler-mock";
+import { getConfig } from "../../../../../processor/src/config/config";
 
 export class CreditcardBuilder implements PaymentComponentBuilder {
   public componentHasSubmit = true;

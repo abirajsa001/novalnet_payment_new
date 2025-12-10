@@ -16,7 +16,13 @@ import {
   ReversePaymentRequest,
   StatusResponse,
 } from "./types/operation.type";
-import { PaymentState } from '@commercetools/platform-sdk';
+import {
+  Address,
+  Cart,
+  Customer,
+  CustomerSetCustomFieldAction,
+  CustomerSetCustomTypeAction,
+} from '@commercetools/platform-sdk';
 import { SupportedPaymentComponentsSchemaDTO } from "../dtos/operations/payment-componets.dto";
 import { PaymentModificationStatus } from "../dtos/operations/payment-intents.dto";
 import packageJSON from "../../package.json";
@@ -291,6 +297,10 @@ export class MockPaymentService extends AbstractPaymentService {
     return billingAddress;
   }
 
+  public async customerDetails(customer: Customer) {
+    return customer;
+  }
+
   public async failureResponse({ data }: { data: any }) {
     const parsedData = typeof data === "string" ? JSON.parse(data) : data;
     const config = getConfig();
@@ -462,22 +472,19 @@ export class MockPaymentService extends AbstractPaymentService {
 	  } else {
 		// obj.value contains the stored data
 		const stored = obj.value;
-
-		// DON'T log raw sensitive data in production. Example: mask deviceId
 		const maskedDeviceId = stored.deviceId ? `${stored.deviceId.slice(0, 6)}…` : undefined;
 		log.info("Stored custom object (masked):", {
 		  container: obj.container,
 		  key: obj.key,
 		  version: obj.version,
 		  deviceId: maskedDeviceId,
-		  riskScore: stored.riskScore, // if non-sensitive you may log
+		  riskScore: stored.riskScore, 
 		});
 		log.info(stored.tid);
 		log.info(stored.status);
 		log.info(stored.cMail);
     log.info(stored.additionalInfo.comments);
-		// If you really need the full payload for debugging (dev only), stringify carefully:
-		// log.debug("Stored full payload (dev only):", JSON.stringify(stored, null, 2));
+
 	  }
 	} catch (err) {
 	  log.error("Error storing / reading CustomObject", { error: (err as any).message ?? err });
@@ -827,7 +834,7 @@ const pspReference = randomUUID().toString();
         },
         first_name: "Max",
         last_name: "Mustermann",
-        email: "abiraj_s@novalnetsolutions.com",
+        email: parsedCart.customerEmail,
       },
       transaction,
       custom: {
@@ -1246,7 +1253,7 @@ public async updatePaymentStatusByPaymentId(
         },
         first_name: "Max",
         last_name: "Mustermann",
-        email: "abiraj_s@novalnetsolutions.com",
+        email: parsedCart.customerEmail,
       },
       transaction: {
         test_mode: testMode === "1" ? "1" : "0",
