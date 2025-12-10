@@ -938,32 +938,17 @@ const pspReference = randomUUID().toString();
             action: "setStatusInterfaceCode",
             interfaceCode: String(statusCode),
           },
+          {
+            action: "transitionState",
+            state: {
+              typeId: "state",
+              key: "Initial", // if your state has key "Initial"
+            },
+          },
         ],
       },
     })
     .execute();
-
-await projectApiRoot
-  .payments()
-  .withId({ ID: ctPayment.id })
-  .post({
-    body: {
-      version: ctPayment.version,
-      actions: [
-        {
-          action: "transitionState",
-          state: {
-            typeId: "state",
-            // use either id OR key depending on how you reference the state
-            // id: "<actual-state-id>",
-            key: "Initial", // if your state has key "Initial"
-          },
-        },
-      ],
-    },
-  })
-  .execute();
-
 
     const comment = await this.getTransactionComment(
       ctPayment.id,
