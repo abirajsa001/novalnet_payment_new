@@ -16,7 +16,7 @@ import {
   ReversePaymentRequest,
   StatusResponse,
 } from "./types/operation.type";
-
+import { PaymentState } from '@commercetools/platform-sdk';
 import { SupportedPaymentComponentsSchemaDTO } from "../dtos/operations/payment-componets.dto";
 import { PaymentModificationStatus } from "../dtos/operations/payment-intents.dto";
 import packageJSON from "../../package.json";
@@ -408,7 +408,12 @@ export class MockPaymentService extends AbstractPaymentService {
         {
           action: "setStatusInterfaceCode",
           interfaceCode: String(statusCode)
-        }
+        },
+        {
+          action: 'changeTransactionState',
+          transactionId: txId,
+          state: 'Pending',
+        },
       ],
     },
   })
@@ -784,7 +789,6 @@ const ctPayment = await this.ctPaymentService.createPayment({
   paymentMethodInfo: {
     paymentInterface: getPaymentInterfaceFromContext() || "mock",
   },
-
   ...(ctCart.customerId && {
     customer: { typeId: "customer", id: ctCart.customerId },
   }),
@@ -911,7 +915,7 @@ const pspReference = randomUUID().toString();
         type: "Authorization",
         amount: ctPayment.amountPlanned,
         interactionId: pspReference,
-        state: this.convertPaymentResultCode(request.data.paymentOutcome),
+        state: "Pending",
         custom: {
           type: {
           typeId: "type",
@@ -927,6 +931,11 @@ const pspReference = randomUUID().toString();
     const raw = await this.ctPaymentService.getPayment({ id: ctPayment.id } as any);
     const payment = (raw as any)?.body ?? raw;
     const version = payment.version;
+    const tx = payment.transactions?.find((t: any) =>
+      t.interactionId === pspReference
+    );
+    if (!tx) throw new Error("Transaction not found");
+    const txId = tx.id;
     const updatedPayment = await projectApiRoot
     .payments()
     .withId({ ID: ctPayment.id })
@@ -938,17 +947,12 @@ const pspReference = randomUUID().toString();
             action: "setStatusInterfaceCode",
             interfaceCode: String(statusCode),
           },
-          {
-            action: "transitionState",
-            state: {
-              typeId: "state",
-              key: "Initial", // if your state has key "Initial"
-            },
-          },
         ],
       },
     })
     .execute();
+
+
 
     const comment = await this.getTransactionComment(
       ctPayment.id,
@@ -1026,7 +1030,41 @@ const pspReference = randomUUID().toString();
     };
   }
 
+public async updatePaymentStatusByPaymentId(
+  paymentId: string,
+  transactionId: string,
+  newState: 'Initial' | 'Pending' | 'Success' | 'Failure' | 'Paid'
+) {
+  const paymentRes = await projectApiRoot
+    .payments()
+    .withId({ ID: paymentId })
+    .get()
+    .execute();
 
+  const payment = paymentRes.body;
+
+  const updatedPayment = await projectApiRoot
+    .payments()
+    .withId({ ID: paymentId })
+    .post({
+      body: {
+        version: payment.version,
+        actions: [
+          {
+            action: 'changeTransactionState',
+            transactionId,
+            state: newState,
+          },
+        ],
+      },
+    })
+    .execute();
+
+  return updatedPayment.body;
+}
+
+
+  
   public async getTransactionComment(paymentId: string, pspReference: string) {
 
     // 1) Fetch payment from commercetools
