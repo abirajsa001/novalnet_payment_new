@@ -93,7 +93,6 @@ export class Creditcard extends BaseComponent {
       console.log("PAN HASH:", panhash);
       console.log("UNIQUE ID:", uniqueId);
       console.log("DO REDIRECT:", doRedirect);
-      console.log('client-key');
 
       if (!panhash || !uniqueId) {
         this.onError("Credit card information is missing or invalid.");
@@ -186,6 +185,25 @@ export class Creditcard extends BaseComponent {
     }
 
     NovalnetUtility.setClientKey("88fcbbceb1948c8ae106c3fe2ccffc12");
+
+    const requestData: PaymentRequestSchemaDTO = {
+      paymentMethod: {
+        type: "CREDITCARD",
+      },
+      paymentOutcome: 'SUCCESS',
+    };
+
+    const response = await fetch(this.processorUrl + "/getconfig", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Session-Id": this.sessionId,
+      },
+      body: JSON.stringify(requestData),
+    });
+    const data = await response.json();
+    console.log('client-key');
+    console.log(data.paymentReference);
 
     const configurationObject = {
       callback: {

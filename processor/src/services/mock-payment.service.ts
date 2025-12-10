@@ -342,6 +342,12 @@ export class MockPaymentService extends AbstractPaymentService {
 
   }  
 
+  public async getConfigValues({ data }: { data: any }) {
+    const clientKey = String(getConfig()?.novalnetClientkey);
+    return {
+      paymentReference: clientKey,
+    };
+  }
 
   public async createPaymentt({ data }: { data: any }) {
     const parsedData = typeof data === "string" ? JSON.parse(data) : data;
