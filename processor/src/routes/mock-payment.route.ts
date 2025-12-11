@@ -165,7 +165,7 @@ export const paymentRoutes = async (
   fastify.post('/getCustomerAddress', async (req, reply) => {
     // safe retrieval of client key
     const resp = await opts.paymentService.getCustomerAddress({
-      data: request.body,
+      data: req.body,
     });
 
     // send a JSON object matching expected shape
