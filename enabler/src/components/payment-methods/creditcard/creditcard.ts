@@ -12,7 +12,6 @@ import {
   PaymentRequestSchemaDTO,
 } from "../../../dtos/mock-payment.dto";
 import { BaseOptions } from "../../../payment-enabler/payment-enabler-mock";
-// import { getConfig } from "../../../../../processor/src/config/config"; // not used in client code
 
 export class CreditcardBuilder implements PaymentComponentBuilder {
   public componentHasSubmit = true;
@@ -227,10 +226,10 @@ export class Creditcard extends BaseComponent {
         paymentMethod: { type: "CREDITCARD" },
         paymentOutcome: "Success",
       };
-      
+
       const body = JSON.stringify(requestData);
       console.log("Outgoing body string:", body);
-      
+
       try {
         const response = await fetch(this.processorUrl + "/getconfig", {
           method: "POST",
@@ -240,23 +239,32 @@ export class Creditcard extends BaseComponent {
           },
           body,
         });
-      
+
         // show raw response text for better error details
-        const rawText = await response.text();
+        const rawText = await response.text().catch(() => "");
         console.log("raw response status:", response.status, "text:", rawText);
-      
+
         if (!response.ok) {
           console.warn("getconfig returned non-200:", response.status);
         } else {
           // try parsing safely
           const data = rawText ? JSON.parse(rawText) : null;
           console.log("parsed data:", data);
-          // ...rest of handling
+          if (data && data.paymentReference) {
+            this.clientKey = String(data.paymentReference);
+            try {
+              if (this.clientKey) NovalnetUtility.setClientKey(this.clientKey);
+            } catch (e) {
+              console.warn("setClientKey with server-supplied key failed:", e);
+            }
+          }
         }
       } catch (err) {
         console.warn("initPaymentProcessor: getconfig fetch failed (non-fatal):", err);
       }
-      
+    } catch (err) {
+      console.warn("Unexpected error preparing getconfig request (non-fatal):", err);
+    }
 
     const configurationObject = {
       callback: {
