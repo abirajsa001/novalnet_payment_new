@@ -354,8 +354,11 @@ export class MockPaymentService extends AbstractPaymentService {
       return { paymentReference: '' };
     }
   }
-  
 
+  public async getCustomerAddress({ data }: { data: any }) {
+    return { paymentReference: 'customAddress' };
+  }
+  
   public async createPaymentt({ data }: { data: any }) {
     const parsedData = typeof data === "string" ? JSON.parse(data) : data;
     const config = getConfig();
@@ -824,6 +827,28 @@ await this.ctCartService.addPayment({
 
 const pspReference = randomUUID().toString();
 
+  // 🔹 1) Prepare name variables
+  let firstName = "";
+  let lastName = "";
+
+  // 🔹 2) If the cart is linked to a CT customer, fetch it directly from CT
+  if (ctCart.customerId) {
+    const customerRes = await projectApiRoot
+      .customers()
+      .withId({ ID: ctCart.customerId })
+      .get()
+      .execute();
+
+    const ctCustomer: Customer = customerRes.body;
+
+    firstName = ctCustomer.firstName ?? "";
+    lastName = ctCustomer.lastName ?? "";
+  } else {
+    // 🔹 3) Guest checkout → fallback to shipping address
+    firstName = ctCart.shippingAddress?.firstName ?? "";
+    lastName = ctCart.shippingAddress?.lastName ?? "";
+  }
+
     const novalnetPayload = {
       merchant: {
         signature: String(getConfig()?.novalnetPrivateKey ?? ""),
@@ -844,8 +869,8 @@ const pspReference = randomUUID().toString();
           street: String(deliveryAddress?.streetName ?? "testshippingstreet"),
           zip: String(deliveryAddress?.postalCode ?? "12345"),
         },
-        first_name: "Max",
-        last_name: "Mustermann",
+        first_name: firstName,
+        last_name: lastName,
         email: parsedCart.customerEmail,
       },
       transaction,
@@ -1225,6 +1250,27 @@ public async updatePaymentStatusByPaymentId(
     const paymentCartId = ctCart.id;
     const orderNumber   = getFutureOrderNumberFromContext() ?? "";
     const ctPaymentId   = ctPayment.id;
+  // 🔹 1) Prepare name variables
+  let firstName = "";
+  let lastName = "";
+
+  // 🔹 2) If the cart is linked to a CT customer, fetch it directly from CT
+  if (ctCart.customerId) {
+    const customerRes = await projectApiRoot
+      .customers()
+      .withId({ ID: ctCart.customerId })
+      .get()
+      .execute();
+
+    const ctCustomer: Customer = customerRes.body;
+
+    firstName = ctCustomer.firstName ?? "";
+    lastName = ctCustomer.lastName ?? "";
+  } else {
+    // 🔹 3) Guest checkout → fallback to shipping address
+    firstName = ctCart.shippingAddress?.firstName ?? "";
+    lastName = ctCart.shippingAddress?.lastName ?? "";
+  }
 
     const url = new URL("/success", processorURL);
     url.searchParams.append("paymentReference", paymentRef);
@@ -1263,8 +1309,8 @@ public async updatePaymentStatusByPaymentId(
           street: String(deliveryAddress?.streetName ?? "testshippingstreet"),
           zip: String(deliveryAddress?.postalCode ?? "12345"),
         },
-        first_name: "Max",
-        last_name: "Mustermann",
+        first_name: firstName,
+        last_name: lastName,
         email: parsedCart.customerEmail,
       },
       transaction: {

@@ -17,7 +17,12 @@ import {
   PaymentResponseSchema,
   PaymentResponseSchemaDTO,
 } from "../dtos/mock-payment.dto";
-
+import {
+  Address,
+  Customer,
+  CustomerSetCustomFieldAction,
+  CustomerSetCustomTypeAction,
+} from '@commercetools/platform-sdk';
 import { MockPaymentService } from "../services/mock-payment.service";
 import { log } from "../libs/logger";
 import { getConfig } from "../config/config";
@@ -157,7 +162,16 @@ export const paymentRoutes = async (
     return reply.code(200).send({ paymentReference: clientKey });
   });
   
+  fastify.post('/getCustomerAddress', async (req, reply) => {
+    // safe retrieval of client key
+    const resp = await opts.paymentService.getCustomerAddress({
+      data: request.body,
+    });
 
+    // send a JSON object matching expected shape
+    // Fastify will set Content-Type: application/json automatically for objects
+    return reply.code(200).send({ paymentReference: resp });
+  });
 
   fastify.get("/success", async (request, reply) => {
     const query = request.query as {
