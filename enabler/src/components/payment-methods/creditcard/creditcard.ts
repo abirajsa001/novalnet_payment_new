@@ -202,7 +202,6 @@ export class Creditcard extends BaseComponent {
       body: JSON.stringify(requestData),
     });
     log.info('client-key-before');
-    log.info(response);
     const data = await response.json();
     console.log('client-key');
     console.log(data.paymentReference ?? '');
