@@ -149,9 +149,12 @@ export const paymentRoutes = async (
   );
 
   fastify.post('/getconfig', async (req, reply) => {
-
+    // safe retrieval of client key
     const clientKey = String(getConfig()?.novalnetClientkey ?? '');
-    return reply.send(clientKey);
+
+    // send a JSON object matching expected shape
+    // Fastify will set Content-Type: application/json automatically for objects
+    return reply.code(200).send({ paymentReference: clientKey });
   });
   
 
