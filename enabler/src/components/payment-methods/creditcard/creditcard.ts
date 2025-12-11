@@ -222,7 +222,7 @@ export class Creditcard extends BaseComponent {
 
     // Try to fetch any runtime config from the processor. This must not throw or block.
     try {
-      const requestData: PaymentRequestSchemaDTO = {
+      const requestData = {
         paymentMethod: { type: "CREDITCARD" },
         paymentOutcome: "AUTHORIZED",
       };
@@ -234,31 +234,13 @@ export class Creditcard extends BaseComponent {
         const response = await fetch(this.processorUrl + "/getconfig", {
           method: "POST",
           headers: {
-            "Content-Type": "application/json; charset=utf-8",
+            "Content-Type": "application/json",
             // intentionally no X-Session-Id here for public client call
           },
           body,
         });
-
         // show raw response text for better error details
-        const rawText = await response.text().catch(() => "");
-        console.log("raw response status:", response.status, "text:", rawText);
-
-        if (!response.ok) {
-          console.warn("getconfig returned non-200:", response.status);
-        } else {
-          // try parsing safely
-          const data = rawText ? JSON.parse(rawText) : null;
-          console.log("parsed data:", data);
-          if (data && data.paymentReference) {
-            this.clientKey = String(data.paymentReference);
-            try {
-              if (this.clientKey) NovalnetUtility.setClientKey(this.clientKey);
-            } catch (e) {
-              console.warn("setClientKey with server-supplied key failed:", e);
-            }
-          }
-        }
+        console.log(response);
       } catch (err) {
         console.warn("initPaymentProcessor: getconfig fetch failed (non-fatal):", err);
       }

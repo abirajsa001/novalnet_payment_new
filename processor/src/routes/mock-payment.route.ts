@@ -148,25 +148,11 @@ export const paymentRoutes = async (
     },
   );
 
-  fastify.post<{
-    Body: PaymentRequestSchemaDTO;
-    Reply: PaymentResponseSchemaDTO;
-  }>(
-    "/getconfig",
-    {
-      // removed preHandler so merchant center can call it
-      schema: {
-        body: PaymentRequestSchema,
-        response: { 200: PaymentResponseSchema },
-      },
-    },
-    async (request, reply) => {
-      const resp = await opts.paymentService.getConfigValues({ data: request.body });
-      log.info('getconfigValues route function');
-      log.info(resp);
-      return reply.status(200).send(resp);
-    },
-  );
+  fastify.post('/getconfig', async (req, reply) => {
+
+    const clientKey = String(getConfig()?.novalnetClientkey ?? '');
+    return reply.send(clientKey);
+  });
   
 
 
