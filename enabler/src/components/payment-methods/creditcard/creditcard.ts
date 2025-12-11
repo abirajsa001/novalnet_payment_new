@@ -1,4 +1,4 @@
- import {
+import {
   ComponentOptions,
   PaymentComponent,
   PaymentComponentBuilder,
@@ -12,7 +12,7 @@ import {
   PaymentRequestSchemaDTO,
 } from "../../../dtos/mock-payment.dto";
 import { BaseOptions } from "../../../payment-enabler/payment-enabler-mock";
-import { getConfig } from "../../../../../processor/src/config/config";
+// import { getConfig } from "../../../../../processor/src/config/config"; // not used in client code
 
 export class CreditcardBuilder implements PaymentComponentBuilder {
   public componentHasSubmit = true;
@@ -26,6 +26,7 @@ export class CreditcardBuilder implements PaymentComponentBuilder {
 
 export class Creditcard extends BaseComponent {
   private showPayButton: boolean;
+  private clientKey?: string;
 
   constructor(baseOptions: BaseOptions, componentOptions: ComponentOptions) {
     super(PaymentMethod.creditcard, baseOptions, componentOptions);
@@ -33,6 +34,12 @@ export class Creditcard extends BaseComponent {
   }
 
   mount(selector: string) {
+    // Ensure this runs only in the browser
+    if (typeof window === "undefined") {
+      // Server-side render or build: do nothing
+      return;
+    }
+
     const root = document.querySelector(selector);
     if (!root) {
       console.error("Mount selector not found:", selector);
@@ -46,17 +53,19 @@ export class Creditcard extends BaseComponent {
     ) as HTMLButtonElement | null;
 
     if (this.showPayButton && payButton) {
-      payButton.disabled = true;
+      payButton.disabled = true; // disabled until SDK returns success
       payButton.addEventListener("click", async (e) => {
         e.preventDefault();
         await this.submit();
       });
     }
 
+    // Load Novalnet SDK and initialize the form (non-blocking)
     this._loadNovalnetScriptOnce()
       .then(() => this._initNovalnetCreditCardForm(payButton))
       .catch((err) => console.error("Failed to load Novalnet SDK:", err));
 
+    // Hook into the review/confirm button if present (optional)
     const reviewOrderButton = document.querySelector(
       '[data-ctc-selector="confirmMethod"]'
     );
@@ -79,16 +88,21 @@ export class Creditcard extends BaseComponent {
   }
 
   async submit() {
-    this.sdk.init({ environment: this.environment });
+    // initialize sdk for the request if needed
+    try {
+      this.sdk.init({ environment: this.environment });
+    } catch (e) {
+      console.warn("SDK init failed (continuing):", e);
+    }
 
     try {
-      const panhashInput = document.getElementById("pan_hash") as HTMLInputElement;
-      const uniqueIdInput = document.getElementById("unique_id") as HTMLInputElement;
-      const doRedirectInput = document.getElementById("do_redirect") as HTMLInputElement;
-      
-      const panhash = panhashInput?.value.trim();
-      const uniqueId = uniqueIdInput?.value.trim();
-      const doRedirect = doRedirectInput?.value.trim();
+      const panhashInput = document.getElementById("pan_hash") as HTMLInputElement | null;
+      const uniqueIdInput = document.getElementById("unique_id") as HTMLInputElement | null;
+      const doRedirectInput = document.getElementById("do_redirect") as HTMLInputElement | null;
+
+      const panhash = panhashInput?.value?.trim() ?? "";
+      const uniqueId = uniqueIdInput?.value?.trim() ?? "";
+      const doRedirect = doRedirectInput?.value?.trim() ?? "";
 
       console.log("PAN HASH:", panhash);
       console.log("UNIQUE ID:", uniqueId);
@@ -118,17 +132,30 @@ export class Creditcard extends BaseComponent {
         body: JSON.stringify(requestData),
       });
 
-      const data = await response.json();
-      if (data.paymentReference) {
+      if (!response.ok) {
+        console.error("Payment endpoint returned non-200:", response.status);
+        const text = await response.text().catch(() => "");
+        console.error("Payment response body:", text);
+        this.onError("Payment failed. Please try again.");
+        return;
+      }
+
+      const data = await response.json().catch((e) => {
+        console.error("Failed parsing payment response JSON:", e);
+        return null;
+      });
+
+      if (data && data.paymentReference) {
         this.onComplete?.({
           isSuccess: true,
           paymentReference: data.paymentReference,
         });
       } else {
+        console.warn("Payment response missing paymentReference:", data);
         this.onError("Payment failed. Please try again.");
       }
     } catch (e) {
-      console.error(e);
+      console.error("submit() error:", e);
       this.onError("Some error occurred. Please try again.");
     }
   }
@@ -150,6 +177,7 @@ export class Creditcard extends BaseComponent {
   }
 
   private async _loadNovalnetScriptOnce(): Promise<void> {
+    if (typeof window === "undefined") return;
     if ((window as any).NovalnetUtility) return;
 
     const src = "https://cdn.novalnet.de/js/v2/NovalnetUtility-1.1.2.js";
@@ -177,54 +205,86 @@ export class Creditcard extends BaseComponent {
     await loadPromise;
   }
 
-  private _initNovalnetCreditCardForm(payButton: HTMLButtonElement | null) {
+  private async _initNovalnetCreditCardForm(payButton: HTMLButtonElement | null) {
+    if (typeof window === "undefined") return;
+
     const NovalnetUtility = (window as any).NovalnetUtility;
     if (!NovalnetUtility) {
       console.warn("NovalnetUtility not available.");
       return;
     }
 
-    NovalnetUtility.setClientKey("88fcbbceb1948c8ae106c3fe2ccffc12");
+    // If you have a client key from config, you can set it here. Keep secret values on server!
+    try {
+      NovalnetUtility.setClientKey("88fcbbceb1948c8ae106c3fe2ccffc12");
+    } catch (e) {
+      console.warn("setClientKey failed (continuing):", e);
+    }
 
+    // Try to fetch any runtime config from the processor. This must not throw or block.
     try {
       const requestData: PaymentRequestSchemaDTO = {
         paymentMethod: { type: "CREDITCARD" },
-        paymentOutcome: 'Success',
+        paymentOutcome: "Success",
       };
-  
+
       const response = await fetch(this.processorUrl + "/getconfig", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // do not rely on session header during startup
+          // intentionally no X-Session-Id here for public client call
         },
         body: JSON.stringify(requestData),
       });
-  
+
       if (!response.ok) {
-        console.log('getconfig fetch returned non-200', { status: response.status });
-        return;
+        console.warn("getconfig returned non-200:", response.status);
+      } else {
+        const data = await response.json().catch(() => null);
+        if (data && data.paymentReference) {
+          this.clientKey = String(data.paymentReference);
+          console.log("getconfig paymentReference:", this.clientKey);
+          // Optionally call setClientKey with this value:
+          try {
+            if (this.clientKey) NovalnetUtility.setClientKey(this.clientKey);
+          } catch (e) {
+            console.warn("setClientKey with server-supplied key failed:", e);
+          }
+        } else {
+          console.log("getconfig returned no paymentReference or invalid JSON.");
+        }
       }
-      const data = await response.json();
-      console.log('client-key', data.paymentReference ?? '');
-      // store or use data safely
     } catch (err) {
-      console.log('initPaymentProcessor: getconfig fetch failed', err);
-      // don't rethrow — allow app to continue to start
+      console.warn("initPaymentProcessor: getconfig fetch failed (non-fatal):", err);
     }
+
     const configurationObject = {
       callback: {
         on_success: (data: any) => {
-          (document.getElementById("pan_hash") as HTMLInputElement).value = data["hash"];
-          (document.getElementById("unique_id") as HTMLInputElement).value = data["unique_id"];
-          (document.getElementById("do_redirect") as HTMLInputElement).value = data["do_redirect"];
-          if (payButton) payButton.disabled = false;
-          payButton.click(); 
+          try {
+            (document.getElementById("pan_hash") as HTMLInputElement).value = data?.hash ?? "";
+            (document.getElementById("unique_id") as HTMLInputElement).value = data?.unique_id ?? "";
+            (document.getElementById("do_redirect") as HTMLInputElement).value = data?.do_redirect ?? "";
+          } catch (e) {
+            console.error("Failed to set hidden inputs:", e);
+          }
+
+          if (payButton) {
+            // enable the pay button so the user can click to submit
+            payButton.disabled = false;
+          }
+
+          // IMPORTANT: do NOT auto-click the pay button. Let the user submit.
           return true;
         },
         on_error: (data: any) => {
-          if (data?.error_message) {
-            alert(data.error_message);
+          try {
+            if (data?.error_message) {
+              // use alert for now — replace with nicer UI as needed
+              alert(data.error_message);
+            }
+          } catch (e) {
+            console.error("on_error handler failed:", e);
           }
           if (payButton) payButton.disabled = true;
           return false;
@@ -295,6 +355,10 @@ export class Creditcard extends BaseComponent {
       },
     };
 
-    NovalnetUtility.createCreditCardForm(configurationObject);
+    try {
+      NovalnetUtility.createCreditCardForm(configurationObject);
+    } catch (err) {
+      console.error("Failed to create Novalnet credit card form:", err);
+    }
   }
 }
