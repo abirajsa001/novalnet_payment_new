@@ -213,13 +213,6 @@ export class Creditcard extends BaseComponent {
       return;
     }
 
-    // If you have a client key from config, you can set it here. Keep secret values on server!
-    try {
-      NovalnetUtility.setClientKey("88fcbbceb1948c8ae106c3fe2ccffc12");
-    } catch (e) {
-      console.warn("setClientKey failed (continuing):", e);
-    }
-
     // Try to fetch any runtime config from the processor. This must not throw or block.
     try {
       const requestData = {
@@ -270,7 +263,13 @@ export class Creditcard extends BaseComponent {
     } catch (err) {
       console.warn("initPaymentProcessor: getconfig fetch failed (non-fatal):", err);
     }
-    
+
+    // If you have a client key from config, you can set it here. Keep secret values on server!
+    try {
+      NovalnetUtility.setClientKey(this.clientKey);
+    } catch (e) {
+      console.warn("setClientKey failed (continuing):", e);
+    }
     const configurationObject = {
       callback: {
         on_success: (data: any) => {
