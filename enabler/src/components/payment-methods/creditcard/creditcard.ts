@@ -224,7 +224,7 @@ export class Creditcard extends BaseComponent {
     try {
       const requestData: PaymentRequestSchemaDTO = {
         paymentMethod: { type: "CREDITCARD" },
-        paymentOutcome: "Success",
+        paymentOutcome: "AUTHORIZED",
       };
 
       const body = JSON.stringify(requestData);
