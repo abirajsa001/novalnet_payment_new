@@ -186,26 +186,32 @@ export class Creditcard extends BaseComponent {
 
     NovalnetUtility.setClientKey("88fcbbceb1948c8ae106c3fe2ccffc12");
 
-    const requestData: PaymentRequestSchemaDTO = {
-      paymentMethod: {
-        type: "CREDITCARD",
-      },
-      paymentOutcome: 'Success',
-    };
-
-    const response = await fetch(this.processorUrl + "/getconfig", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Session-Id": this.sessionId,
-      },
-      body: JSON.stringify(requestData),
-    });
-    log.info('client-key-before');
-    const data = await response.json();
-    console.log('client-key');
-    console.log(data.paymentReference ?? '');
-
+    try {
+      const requestData: PaymentRequestSchemaDTO = {
+        paymentMethod: { type: "CREDITCARD" },
+        paymentOutcome: 'Success',
+      };
+  
+      const response = await fetch(this.processorUrl + "/getconfig", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          // do not rely on session header during startup
+        },
+        body: JSON.stringify(requestData),
+      });
+  
+      if (!response.ok) {
+        console.log('getconfig fetch returned non-200', { status: response.status });
+        return;
+      }
+      const data = await response.json();
+      console.log('client-key', data.paymentReference ?? '');
+      // store or use data safely
+    } catch (err) {
+      console.log('initPaymentProcessor: getconfig fetch failed', err);
+      // don't rethrow — allow app to continue to start
+    }
     const configurationObject = {
       callback: {
         on_success: (data: any) => {

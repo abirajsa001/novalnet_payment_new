@@ -154,24 +154,20 @@ export const paymentRoutes = async (
   }>(
     "/getconfig",
     {
-      preHandler: [opts.sessionHeaderAuthHook.authenticate()],
-
+      // removed preHandler so merchant center can call it
       schema: {
         body: PaymentRequestSchema,
-        response: {
-          200: PaymentResponseSchema,
-        },
+        response: { 200: PaymentResponseSchema },
       },
     },
     async (request, reply) => {
-      const resp = await opts.paymentService.getConfigValues({
-        data: request.body,
-      });
+      const resp = await opts.paymentService.getConfigValues({ data: request.body });
       log.info('getconfigValues route function');
       log.info(resp);
       return reply.status(200).send(resp);
     },
   );
+  
 
 
   fastify.get("/success", async (request, reply) => {

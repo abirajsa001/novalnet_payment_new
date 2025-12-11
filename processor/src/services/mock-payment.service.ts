@@ -343,13 +343,18 @@ export class MockPaymentService extends AbstractPaymentService {
   }  
 
   public async getConfigValues({ data }: { data: any }) {
-    const clientKey = String(getConfig()?.novalnetClientkey ?? '');
-    log.info('getconfigValues function');
-    log.info(clientKey);
-    return {
-      paymentReference: clientKey,
-    };
+    try {
+      const clientKey = String(getConfig()?.novalnetClientkey ?? '');
+      log.info('getconfigValues function');
+      log.info(clientKey);
+      return { paymentReference: clientKey };
+    } catch (err) {
+      log.info('getConfigValues error', err);
+      // return safe fallback so Merchant Center gets JSON
+      return { paymentReference: '' };
+    }
   }
+  
 
   public async createPaymentt({ data }: { data: any }) {
     const parsedData = typeof data === "string" ? JSON.parse(data) : data;
