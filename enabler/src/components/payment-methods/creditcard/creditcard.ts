@@ -227,36 +227,36 @@ export class Creditcard extends BaseComponent {
         paymentMethod: { type: "CREDITCARD" },
         paymentOutcome: "Success",
       };
-
-      const response = await fetch(this.processorUrl + "/getconfig", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          // intentionally no X-Session-Id here for public client call
-        },
-        body: JSON.stringify(requestData),
-      });
-
-      if (!response.ok) {
-        console.warn("getconfig returned non-200:", response.status);
-      } else {
-        const data = await response.json().catch(() => null);
-        if (data && data.paymentReference) {
-          this.clientKey = String(data.paymentReference);
-          console.log("getconfig paymentReference:", this.clientKey);
-          // Optionally call setClientKey with this value:
-          try {
-            if (this.clientKey) NovalnetUtility.setClientKey(this.clientKey);
-          } catch (e) {
-            console.warn("setClientKey with server-supplied key failed:", e);
-          }
+      
+      const body = JSON.stringify(requestData);
+      console.log("Outgoing body string:", body);
+      
+      try {
+        const response = await fetch(this.processorUrl + "/getconfig", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            // intentionally no X-Session-Id here for public client call
+          },
+          body,
+        });
+      
+        // show raw response text for better error details
+        const rawText = await response.text();
+        console.log("raw response status:", response.status, "text:", rawText);
+      
+        if (!response.ok) {
+          console.warn("getconfig returned non-200:", response.status);
         } else {
-          console.log("getconfig returned no paymentReference or invalid JSON.");
+          // try parsing safely
+          const data = rawText ? JSON.parse(rawText) : null;
+          console.log("parsed data:", data);
+          // ...rest of handling
         }
+      } catch (err) {
+        console.warn("initPaymentProcessor: getconfig fetch failed (non-fatal):", err);
       }
-    } catch (err) {
-      console.warn("initPaymentProcessor: getconfig fetch failed (non-fatal):", err);
-    }
+      
 
     const configurationObject = {
       callback: {
