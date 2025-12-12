@@ -354,7 +354,8 @@ export class MockPaymentService extends AbstractPaymentService {
     }
   }
 
-  public async getCustomerAddress({ data }: { data: any }): Promise<PaymentResponseSchemaDTO> {
+  public async getCustomerAddress(request: CreatePaymentRequest,
+  ): Promise<PaymentResponseSchemaDTO> {
     log.info('service-customer-address - start');
   
     // 1) Fetch cart (will throw if not found) — guard and log

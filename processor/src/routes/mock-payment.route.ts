@@ -162,18 +162,20 @@ export const paymentRoutes = async (
     return reply.code(200).send({ paymentReference: clientKey });
   });
   
-  fastify.post('/getCustomerAddress', async (req, reply) => {
-    // safe retrieval of client key
+fastify.post<{ Body: PaymentRequestSchemaDTO }>(
+  '/getCustomerAddress',
+  async (req: FastifyRequest<{ Body: PaymentRequestSchemaDTO }>, reply: FastifyReply) => {
     log.info('route-customer-address');
+
+    // req.body is typed as PaymentRequestSchemaDTO now
     const resp = await opts.paymentService.getCustomerAddress({
       data: req.body,
     });
-   
-    // send a JSON object matching expected shape
-    // Fastify will set Content-Type: application/json automatically for objects
-    return reply.code(200).send({ resp });
-  });
 
+   return reply.code(200).send({ resp });
+  }
+);	
+   
   fastify.get("/success", async (request, reply) => {
     const query = request.query as {
       tid?: string;
