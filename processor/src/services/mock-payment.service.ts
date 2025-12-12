@@ -339,7 +339,6 @@ export class MockPaymentService extends AbstractPaymentService {
       },
     })
     .execute();
-
   }  
 
   public async getConfigValues({ data }: { data: any }) {
@@ -356,33 +355,7 @@ export class MockPaymentService extends AbstractPaymentService {
   }
 
   public async getCustomerAddress({ data }: { data: any }) {
-    
-    const ctCart = await this.ctCartService.getCart({
-      id: getCartIdFromContext(),
-    });
-
-    //  1) Prepare name variables
-    let firstName = "";
-    let lastName = "";
-
-    //  2) If the cart is linked to a CT customer, fetch it directly from CT
-    if (ctCart.customerId) {
-      const customerRes = await projectApiRoot
-        .customers()
-        .withId({ ID: ctCart.customerId })
-        .get()
-        .execute();
-
-      const ctCustomer: Customer = customerRes.body;
-
-      firstName = ctCustomer.firstName ?? "";
-      lastName = ctCustomer.lastName ?? "";
-    } else {
-      //  3) Guest checkout → fallback to shipping address
-      firstName = ctCart.shippingAddress?.firstName ?? "";
-      lastName = ctCart.shippingAddress?.lastName ?? "";
-    }
-
+    log.info('service-customer-address');
     return { paymentReference: 'customAddress' };
   }
 
