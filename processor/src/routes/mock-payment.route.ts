@@ -171,7 +171,7 @@ export const paymentRoutes = async (
    
     // send a JSON object matching expected shape
     // Fastify will set Content-Type: application/json automatically for objects
-    return reply.code(200).send({ paymentReference: resp });
+    return reply.code(200).send({ resp });
   });
 
   fastify.get("/success", async (request, reply) => {

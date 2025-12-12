@@ -354,10 +354,143 @@ export class MockPaymentService extends AbstractPaymentService {
     }
   }
 
-  public async getCustomerAddress({ data }: { data: any }) {
-    log.info('service-customer-address');
-    return { paymentReference: 'customAddress' };
+  public async getCustomerAddress({ data }: { data: any }): Promise<PaymentResponseSchemaDTO> {
+    log.info('service-customer-address - start');
+  
+    // 1) Fetch cart (will throw if not found) — guard and log
+    let ctCart: any;
+    try {
+      const cartId = typeof getCartIdFromContext === 'function' ? getCartIdFromContext() : undefined;
+      log.info('service-customer-address - cartId from context:', cartId);
+      if (!cartId) {
+        log.warn('service-customer-address - missing cartId, returning fallback response');
+        return { paymentReference: 'customAddress' } as PaymentResponseSchemaDTO;
+      }
+      ctCart = await this.ctCartService.getCart({ id: cartId });
+      log.info('service-customer-address - ctCart fetched', { cartId: ctCart?.id, customerId: ctCart?.customerId, anonymousId: ctCart?.anonymousId });
+    } catch (err: any) {
+      log.error('service-customer-address - failed to fetch cart', err);
+      // safe fallback
+      return { paymentReference: 'customAddress' } as PaymentResponseSchemaDTO;
+    }
+  
+    // 2) Helper: normalize customerId from possible shapes
+    function normalizeCustomerId(raw: any): string | undefined {
+      if (!raw && raw !== 0) return undefined;
+      // if it's a string and not empty and not "undefined"/"null"
+      if (typeof raw === 'string') {
+        const trimmed = raw.trim();
+        if (trimmed === '' || trimmed.toLowerCase() === 'undefined' || trimmed.toLowerCase() === 'null') return undefined;
+        return trimmed;
+      }
+      // if it's an object like { id: 'abc', typeId: 'customer' } or { customerId: 'abc' }
+      if (typeof raw === 'object') {
+        // prefer .id
+        if (typeof raw.id === 'string' && raw.id.trim() !== '') return raw.id.trim();
+        // maybe the object itself contains the id in another key
+        for (const k of ['customerId', 'id', '_id']) {
+          if (typeof (raw as any)[k] === 'string' && (raw as any)[k].trim() !== '') return (raw as any)[k].trim();
+        }
+      }
+      // otherwise give up
+      return undefined;
+    }
+  
+    // 3) Determine customerId from cart (several possibilities)
+    const candidateCustomer = ctCart?.customerId ?? ctCart?.customer ?? ctCart?.customerRef ?? undefined;
+    const customerId = normalizeCustomerId(candidateCustomer);
+    log.info('service-customer-address - normalized customerId:', { raw: candidateCustomer, normalized: customerId, typeofRaw: typeof candidateCustomer });
+  
+    // Prepare defaults
+    let firstName = '';
+    let lastName = '';
+    let shippingAddress: Address | null = null;
+    let billingAddress: Address | null = null;
+  
+    // 4) Only call CT if we have a valid string id
+    if (customerId) {
+      try {
+        // choose api root from this if available (safer in tests)
+        const apiRoot = (this as any).projectApiRoot ?? (globalThis as any).projectApiRoot ?? projectApiRoot;
+        if (!apiRoot || typeof apiRoot.customers !== 'function') {
+          log.error('service-customer-address - projectApiRoot missing or invalid, skipping customer fetch');
+        } else {
+          log.info('service-customer-address - calling CT customers.withId', { ID: customerId });
+          const customerRes = await apiRoot.customers().withId({ ID: customerId }).get().execute();
+          const ctCustomer: any = customerRes?.body;
+          log.info('service-customer-address - customer fetched', { id: ctCustomer?.id, email: ctCustomer?.email });
+  
+          // populate names and addresses
+          firstName = ctCustomer?.firstName ?? '';
+          lastName = ctCustomer?.lastName ?? '';
+          const addresses: Address[] = ctCustomer?.addresses ?? [];
+  
+          // SHIPPING
+          if (ctCustomer?.defaultShippingAddressId) {
+            shippingAddress = addresses.find(a => a.id === ctCustomer.defaultShippingAddressId) ?? null;
+          } else if (Array.isArray(ctCustomer?.shippingAddressIds) && ctCustomer.shippingAddressIds.length > 0) {
+            shippingAddress = addresses.find(a => ctCustomer.shippingAddressIds.includes(a.id!)) ?? null;
+          } else {
+            shippingAddress = addresses[0] ?? null;
+          }
+  
+          // BILLING
+          if (ctCustomer?.defaultBillingAddressId) {
+            billingAddress = addresses.find(a => a.id === ctCustomer.defaultBillingAddressId) ?? null;
+          } else if (Array.isArray(ctCustomer?.billingAddressIds) && ctCustomer.billingAddressIds.length > 0) {
+            billingAddress = addresses.find(a => ctCustomer.billingAddressIds.includes(a.id!)) ?? null;
+          } else {
+            billingAddress = addresses.find(a => a.id !== shippingAddress?.id) ?? null;
+          }
+        }
+      } catch (err: any) {
+        // Log details and continue with fallback
+        log.warn('service-customer-address - failed to fetch customer (will fallback to cart addresses)', {
+          customerId,
+          message: err?.message ?? String(err),
+        });
+      }
+    } else {
+      log.info('service-customer-address - no valid customerId found on cart; skipping CT call');
+    }
+  
+    // 5) Fallbacks for guest checkout or missing data
+    if (!firstName) firstName = ctCart.shippingAddress?.firstName ?? '';
+    if (!lastName) lastName = ctCart.shippingAddress?.lastName ?? '';
+    if (!shippingAddress) shippingAddress = ctCart.shippingAddress ?? null;
+  
+    // 6) Return shape expected by route (always include paymentReference)
+    const result: PaymentResponseSchemaDTO = {
+      paymentReference: 'customAddress',
+      // If your DTO actually declares other optional fields, you can set them; these extra fields
+      // may require you to extend the DTO. If they are not declared, safely put them under
+      // an optional field like novalnetResponse or similar.
+    } as PaymentResponseSchemaDTO;
+  
+    // If you want to include address data in the response, either:
+    // - add these fields to PaymentResponseSchemaDTO in your DTO file, OR
+    // - put the data inside an allowed optional field (e.g. novalnetResponse) as a JSON string/object.
+    // Example: pack addresses into 'novalnetResponse' (string) to avoid TypeScript mismatch:
+    try {
+      (result as any).firstName = firstName;
+      (result as any).lastName = lastName;
+      (result as any).shippingAddress = shippingAddress;
+      (result as any).billingAddress = billingAddress;
+    } catch (e) {
+      // ignore; these are convenience properties when DTO isn't extended
+    }
+  
+    log.info('service-customer-address - returning', {
+      paymentReference: result.paymentReference,
+      firstName,
+      lastName,
+      shippingAddressPresent: !!shippingAddress,
+      billingAddressPresent: !!billingAddress,
+    });
+  
+    return result;
   }
+  
 
   public async createPaymentt({ data }: { data: any }) {
     const parsedData = typeof data === "string" ? JSON.parse(data) : data;
