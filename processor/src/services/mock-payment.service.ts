@@ -360,7 +360,7 @@ export class MockPaymentService extends AbstractPaymentService {
     // 1) Fetch cart (will throw if not found) — guard and log
     let ctCart: any;
     try {
-      const cartId = typeof getCartIdFromContext === 'function' ? getCartIdFromContext() : undefined;
+      const cartId = getCartIdFromContext();
       log.info('service-customer-address - cartId from context:', cartId);
       if (!cartId) {
         log.warn('service-customer-address - missing cartId, returning fallback response');
