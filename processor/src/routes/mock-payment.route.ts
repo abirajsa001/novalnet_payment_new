@@ -172,7 +172,7 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
       data: req.body,
     });
 
-   return reply.code(200).send({ resp });
+   return reply.code(200).send(resp);
   }
 );	
    

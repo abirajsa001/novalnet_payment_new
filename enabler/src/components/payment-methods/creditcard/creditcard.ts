@@ -278,7 +278,7 @@ export class Creditcard extends BaseComponent {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Accept": "application/json",
+          "X-Session-Id": this.sessionId,
           // no X-Session-Id for public client call
         },
         body,
