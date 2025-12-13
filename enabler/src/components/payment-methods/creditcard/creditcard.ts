@@ -273,7 +273,8 @@ export class Creditcard extends BaseComponent {
     
       const body = JSON.stringify(requestData);
       console.log("Outgoing body string:", body);
-    
+      console.log(JSON.parse(sessionStorage.getItem("checkout")));
+
       const response = await fetch(this.processorUrl + "/getCustomerAddress", {
         method: "POST",
         headers: {
