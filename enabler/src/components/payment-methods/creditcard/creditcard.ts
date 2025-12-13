@@ -264,7 +264,6 @@ export class Creditcard extends BaseComponent {
       console.warn("initPaymentProcessor: getconfig fetch failed (non-fatal):", err);
     }
 
-
     try {
       const requestData = {
         paymentMethod: { type: "CREDITCARD" },
