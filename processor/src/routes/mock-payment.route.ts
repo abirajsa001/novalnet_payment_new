@@ -168,27 +168,6 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
   async (req: FastifyRequest<{ Body: PaymentRequestSchemaDTO }>, reply: FastifyReply) => {
     log.info('route-customer-address');
     const apiRoot = (this as any).projectApiRoot ?? (globalThis as any).projectApiRoot ?? projectApiRoot;
-
-    let cartId = null;
-
-    try {
-      const activeCart = await apiRoot.me().activeCart().get().execute();
-      cartId = activeCart.body.id;
-    } catch {}
-    
-    if (!cartId) {
-      const carts = await apiRoot.me().carts().get().execute();
-      cartId = carts.body.results?.[0]?.id ?? null;
-    }
-    
-    if (!cartId) {
-      const newCart = await apiRoot.me().carts().post({ body: {} }).execute();
-      cartId = newCart.body.id;
-    }
-    
-    log.info("GUARANTEED CART ID:", cartId);
-    log.info(cartId);
-    
     // req.body is typed as PaymentRequestSchemaDTO now
     const resp = await opts.paymentService.getCustomerAddress({
       data: req.body,
