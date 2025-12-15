@@ -374,37 +374,32 @@ export class MockPaymentService extends AbstractPaymentService {
       // safe fallback
       return { paymentReference: 'customAddress' } as PaymentResponseSchemaDTO;
     }
-    // 🔹 1) Prepare name variables
-    let customerAddress = "";
-    let shippingAddress = "";
-    let billingAddress = "";
+	// Correct types
+	let customerAddress: Customer | null = null;
+	let shippingAddress: Address | null = null;
+	let billingAddress: Address | null = null;
 
-    // 🔹 2) If the cart is linked to a CT customer, fetch it directly from CT
-    if (ctCart.customerId) {
-      const customerRes = await projectApiRoot
-        .customers()
-        .withId({ ID: ctCart.customerId })
-        .get()
-        .execute();
-  
-      const ctCustomer: Customer = customerRes.body;
-  
-      customerAddress = ctCustomer ?? "";
-    } else {
-      // 🔹 3) Guest checkout → fallback to shipping address
-      shippingAddress = ctCart.shippingAddress ?? "";
-      billingAddress = ctCart.billingAddress ?? "";
-    }
-  
-  
-    // 6) Return shape expected by route (always include paymentReference)
+	if (ctCart.customerId) {
+	  const customerRes = await projectApiRoot
+		.customers()
+		.withId({ ID: ctCart.customerId })
+		.get()
+		.execute();
+
+	  customerAddress = customerRes.body; // OK
+	} else {
+	  shippingAddress = ctCart.shippingAddress ?? null;
+	  billingAddress = ctCart.billingAddress ?? null;
+	}
+
+ 
     const result: PaymentResponseSchemaDTO = {
       paymentReference: 'customAddress',
     } as PaymentResponseSchemaDTO;
     try {
-      (result as any).customerAddress = customerAddress;
-      (result as any).shippingAddress = shippingAddress;
-      (result as any).billingAddress = billingAddress;
+	(result as any).customerAddress = customerAddress;
+	(result as any).shippingAddress = shippingAddress;
+	(result as any).billingAddress = billingAddress;
     } catch (e) {
       // ignore; these are convenience properties when DTO isn't extended
     }
