@@ -166,15 +166,18 @@ export const paymentRoutes = async (
 fastify.post<{ Body: PaymentRequestSchemaDTO }>(
   '/getCustomerAddress',
   async (req: FastifyRequest<{ Body: PaymentRequestSchemaDTO }>, reply: FastifyReply) => {
-    log.info('route-customer-address');
-    const activeCart = await projectApiRoot.me().activeCart().get().execute();
-    localStorage.setItem("cartId", activeCart.body.id);
-    log.info('route-cart-address');
-    log.info(activeCart.body.id);
+    log.info('route-customer-address'); 
+    log.info("getCartIdFromContext():");
+    log.info(getCartIdFromContext());
+    const carts = await projectApiRoot.carts().get().execute();
+    log.info("CART LIST:", carts.body.results);
+    log.info(carts.body.results[0]?.id ?? 'empty1');
+    const cartId = carts.body.results[0]?.id ?? 'empty1';
     // req.body is typed as PaymentRequestSchemaDTO now
     const resp = await opts.paymentService.getCustomerAddress({
       data: req.body,
-    });
+      cartId,
+    }as any);
 
    return reply.code(200).send(resp);
   }

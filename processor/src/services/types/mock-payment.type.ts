@@ -8,6 +8,7 @@ export type MockPaymentServiceOptions = {
 
 export type CreatePaymentRequest = {
   data: PaymentRequestSchemaDTO;
+  cartId?: string;
 };
 
 export interface UpdatePayment {
