@@ -408,11 +408,6 @@ export class Creditcard extends BaseComponent {
           country_code: "DE",
         },
       },
-      transaction: {
-        amount: 123,
-        currency: "EUR",
-        test_mode: 1,
-      },
       custom: {
         lang: "EN",
       },
