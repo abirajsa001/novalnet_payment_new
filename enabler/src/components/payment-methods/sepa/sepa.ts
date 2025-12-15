@@ -57,7 +57,7 @@ export class Sepa extends BaseComponent {
 
     const accountHolder = accountHolderInput?.value.trim();
     const iban = ibanInput?.value.trim();
-    const bic = ibanInput?.value.trim();
+    const bic = bicInput?.value.trim();
 
     console.log('Account Holder:', accountHolder);
     console.log('IBAN:', iban);
