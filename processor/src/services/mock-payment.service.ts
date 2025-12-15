@@ -374,99 +374,35 @@ export class MockPaymentService extends AbstractPaymentService {
       // safe fallback
       return { paymentReference: 'customAddress' } as PaymentResponseSchemaDTO;
     }
+    // 🔹 1) Prepare name variables
+    let customerAddress = "";
+    let shippingAddress = "";
+    let billingAddress = "";
+
+    // 🔹 2) If the cart is linked to a CT customer, fetch it directly from CT
+    if (ctCart.customerId) {
+      const customerRes = await projectApiRoot
+        .customers()
+        .withId({ ID: ctCart.customerId })
+        .get()
+        .execute();
   
-    // 2) Helper: normalize customerId from possible shapes
-    function normalizeCustomerId(raw: any): string | undefined {
-      if (!raw && raw !== 0) return undefined;
-      // if it's a string and not empty and not "undefined"/"null"
-      if (typeof raw === 'string') {
-        const trimmed = raw.trim();
-        if (trimmed === '' || trimmed.toLowerCase() === 'undefined' || trimmed.toLowerCase() === 'null') return undefined;
-        return trimmed;
-      }
-      // if it's an object like { id: 'abc', typeId: 'customer' } or { customerId: 'abc' }
-      if (typeof raw === 'object') {
-        // prefer .id
-        if (typeof raw.id === 'string' && raw.id.trim() !== '') return raw.id.trim();
-        // maybe the object itself contains the id in another key
-        for (const k of ['customerId', 'id', '_id']) {
-          if (typeof (raw as any)[k] === 'string' && (raw as any)[k].trim() !== '') return (raw as any)[k].trim();
-        }
-      }
-      // otherwise give up
-      return undefined;
-    }
+      const ctCustomer: Customer = customerRes.body;
   
-    // 3) Determine customerId from cart (several possibilities)
-    const candidateCustomer = ctCart?.customerId ?? ctCart?.customer ?? ctCart?.customerRef ?? undefined;
-    const customerId = normalizeCustomerId(candidateCustomer);
-    log.info('service-customer-address - normalized customerId:', { raw: candidateCustomer, normalized: customerId, typeofRaw: typeof candidateCustomer });
-  
-    // Prepare defaults
-    let firstName = '';
-    let lastName = '';
-    let shippingAddress: Address | null = null;
-    let billingAddress: Address | null = null;
-  
-    // 4) Only call CT if we have a valid string id
-    if (customerId) {
-      try {
-        // choose api root from this if available (safer in tests)
-        const apiRoot = (this as any).projectApiRoot ?? (globalThis as any).projectApiRoot ?? projectApiRoot;
-        if (!apiRoot || typeof apiRoot.customers !== 'function') {
-          log.error('service-customer-address - projectApiRoot missing or invalid, skipping customer fetch');
-        } else {
-          log.info('service-customer-address - calling CT customers.withId', { ID: customerId });
-          const customerRes = await apiRoot.customers().withId({ ID: customerId }).get().execute();
-          const ctCustomer: any = customerRes?.body;
-          log.info('service-customer-address - customer fetched', { id: ctCustomer?.id, email: ctCustomer?.email });
-  
-          // populate names and addresses
-          firstName = ctCustomer?.firstName ?? '';
-          lastName = ctCustomer?.lastName ?? '';
-          const addresses: Address[] = ctCustomer?.addresses ?? [];
-  
-          // SHIPPING
-          if (ctCustomer?.defaultShippingAddressId) {
-            shippingAddress = addresses.find(a => a.id === ctCustomer.defaultShippingAddressId) ?? null;
-          } else if (Array.isArray(ctCustomer?.shippingAddressIds) && ctCustomer.shippingAddressIds.length > 0) {
-            shippingAddress = addresses.find(a => ctCustomer.shippingAddressIds.includes(a.id!)) ?? null;
-          } else {
-            shippingAddress = addresses[0] ?? null;
-          }
-  
-          // BILLING
-          if (ctCustomer?.defaultBillingAddressId) {
-            billingAddress = addresses.find(a => a.id === ctCustomer.defaultBillingAddressId) ?? null;
-          } else if (Array.isArray(ctCustomer?.billingAddressIds) && ctCustomer.billingAddressIds.length > 0) {
-            billingAddress = addresses.find(a => ctCustomer.billingAddressIds.includes(a.id!)) ?? null;
-          } else {
-            billingAddress = addresses.find(a => a.id !== shippingAddress?.id) ?? null;
-          }
-        }
-      } catch (err: any) {
-        // Log details and continue with fallback
-        log.warn('service-customer-address - failed to fetch customer (will fallback to cart addresses)', {
-          customerId,
-          message: err?.message ?? String(err),
-        });
-      }
+      customerAddress = ctCustomer ?? "";
     } else {
-      log.info('service-customer-address - no valid customerId found on cart; skipping CT call');
+      // 🔹 3) Guest checkout → fallback to shipping address
+      shippingAddress = ctCart.shippingAddress ?? "";
+      billingAddress = ctCart.billingAddress ?? "";
     }
   
-    // 5) Fallbacks for guest checkout or missing data
-    if (!firstName) firstName = ctCart.shippingAddress?.firstName ?? '';
-    if (!lastName) lastName = ctCart.shippingAddress?.lastName ?? '';
-    if (!shippingAddress) shippingAddress = ctCart.shippingAddress ?? null;
   
     // 6) Return shape expected by route (always include paymentReference)
     const result: PaymentResponseSchemaDTO = {
       paymentReference: 'customAddress',
     } as PaymentResponseSchemaDTO;
     try {
-      (result as any).firstName = firstName;
-      (result as any).lastName = lastName;
+      (result as any).customerAddress = customerAddress;
       (result as any).shippingAddress = shippingAddress;
       (result as any).billingAddress = billingAddress;
     } catch (e) {
@@ -474,9 +410,7 @@ export class MockPaymentService extends AbstractPaymentService {
     }
   
     log.info('service-customer-address - returning', {
-      paymentReference: result.paymentReference,
-      firstName,
-      lastName,
+      customerAddressPresent: !!customerAddress,
       shippingAddressPresent: !!shippingAddress,
       billingAddressPresent: !!billingAddress,
     });
