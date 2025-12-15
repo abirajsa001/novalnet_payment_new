@@ -310,9 +310,10 @@ export class Creditcard extends BaseComponent {
           this.firstName = String(json.firstName);
           this.lastName = String(json.lastName);
           this.email = String(json.email);
+          this.json = String(json);
           console.log("Customer Address set from server:", this.firstName);
           console.log(String(json.billingAddress.firstName));
-          console.log(String(json.shippingAddress.firstName));
+          console.log(String(json.shippingAddress.lastName));
         } else {
           console.warn("JSON response missing paymentReference:", json);
         }
@@ -402,20 +403,25 @@ export class Creditcard extends BaseComponent {
         last_name: this.lastName,
         email: this.email,
         billing: {
-          street: String(json.billingAddress.streetName),
-          city: String(json.billingAddress.city),
-          zip: String(json.billingAddress.postalCode),
-          country_code: String(json.billingAddress.country),
+          street: String(this.json.billingAddress.streetName),
+          city: String(this.json.billingAddress.city),
+          zip: String(this.json.billingAddress.postalCode),
+          country_code: String(this.json.billingAddress.country),
         },
         shipping: {
           same_as_billing: 1,
-          first_name: String(json.billingAddress.firstName),
-          last_name: String(json.billingAddress.lastName),
-          street: String(json.billingAddress.streetName),
-          city: String(json.billingAddress.city),
-          zip: String(json.billingAddress.postalCode),
-          country_code: String(json.billingAddress.country),
+          first_name: String(this.json.billingAddress.firstName),
+          last_name: String(this.json.billingAddress.lastName),
+          street: String(this.json.billingAddress.streetName),
+          city: String(this.json.billingAddress.city),
+          zip: String(this.json.billingAddress.postalCode),
+          country_code: String(this.json.billingAddress.country),
         },
+      },
+      transaction: {
+        amount: 123,
+        currency: "EUR",
+        test_mode: 1,
       },
       custom: {
         lang: "EN",
