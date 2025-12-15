@@ -264,6 +264,7 @@ export class Creditcard extends BaseComponent {
       console.warn("initPaymentProcessor: getconfig fetch failed (non-fatal):", err);
     }
 
+
     try {
       const requestData = {
         paymentMethod: { type: "CREDITCARD" },
@@ -272,14 +273,19 @@ export class Creditcard extends BaseComponent {
     
       const body = JSON.stringify(requestData);
       console.log("Outgoing body string:", body);
-      console.log(JSON.parse(sessionStorage.getItem("checkout")));
+      const currentCartId = window.localStorage.getItem('cartId');
+      console.log(currentCartId ?? 'not-current-cart-id');
+
+      const currentCartId2 = window.localStorage.getItem('cart-id');
+      console.log(currentCartId2 ?? 'not-current-cart-id2');
+      console.log(this.sessionId ?? 'sessionId');
 
       const response = await fetch(this.processorUrl + "/getCustomerAddress", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Session-Id": this.sessionId,
-          // no X-Session-Id for public client call
+          "Accept": "application/json",
+          "X-Session-Id": this.sessionId, 
         },
         body,
       });
@@ -300,9 +306,13 @@ export class Creditcard extends BaseComponent {
         });
         console.log("parsed response JSON:", json);
     
-        if (json && json.paymentReference) {
-          this.clientKey = String(json.paymentReference);
-          console.log("Customer Address set from server:", this.clientKey);
+        if (json && json.firstName) {
+          this.firstName = String(json.firstName);
+          this.lastName = String(json.lastName);
+          this.email = String(json.email);
+          console.log("Customer Address set from server:", this.firstName);
+          console.log(String(json.billingAddress.firstName));
+          console.log(String(json.shippingAddress.firstName));
         } else {
           console.warn("JSON response missing paymentReference:", json);
         }
@@ -388,24 +398,23 @@ export class Creditcard extends BaseComponent {
         },
       },
       customer: {
-        first_name: "Max",
-        last_name: "Mustermann",
-        email: "test@novalnet.de",
+        first_name: this.firstName,
+        last_name: this.lastName,
+        email: this.email,
         billing: {
-          street: "Musterstr, 2",
-          city: "Musterhausen",
-          zip: "12345",
-          country_code: "DE",
+          street: String(json.billingAddress.streetName),
+          city: String(json.billingAddress.city),
+          zip: String(json.billingAddress.postalCode),
+          country_code: String(json.billingAddress.country),
         },
         shipping: {
           same_as_billing: 1,
-          first_name: "Max",
-          last_name: "Mustermann",
-          email: "test@novalnet.de",
-          street: "Hauptstr, 9",
-          city: "Kaiserslautern",
-          zip: "66862",
-          country_code: "DE",
+          first_name: String(json.billingAddress.firstName),
+          last_name: String(json.billingAddress.lastName),
+          street: String(json.billingAddress.streetName),
+          city: String(json.billingAddress.city),
+          zip: String(json.billingAddress.postalCode),
+          country_code: String(json.billingAddress.country),
         },
       },
       custom: {

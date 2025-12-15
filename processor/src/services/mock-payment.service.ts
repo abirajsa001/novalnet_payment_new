@@ -354,64 +354,110 @@ export class MockPaymentService extends AbstractPaymentService {
     }
   }
 
-  public async getCustomerAddress(request: CreatePaymentRequest,
+  public async getCustomerAddress(
+    request: CreatePaymentRequest
   ): Promise<PaymentResponseSchemaDTO> {
-    log.info('service-customer-address - start');
   
-    // 1) Fetch cart (will throw if not found) — guard and log
+    log.info("service-customer-address - start");
+  
+    // -----------------------------
+    // 1) Validate cartId
+    // -----------------------------
+    const cartId = request.cartId;
+    if (!cartId) {
+      log.warn("service-customer-address - missing cartId");
+      return { paymentReference: "customAddress" };
+    }
+  
+    // -----------------------------
+    // 2) Fetch Cart
+    // -----------------------------
     let ctCart: any;
     try {
-      const cartId = request.cartId;
-      log.info('service-customer-address - cartId from context:', cartId);
-      if (!cartId) {
-        log.warn('service-customer-address - missing cartId, returning fallback response');
-        return { paymentReference: 'customAddress' } as PaymentResponseSchemaDTO;
-      }
       ctCart = await this.ctCartService.getCart({ id: cartId });
-      log.info('service-customer-address - ctCart fetched', { cartId: ctCart?.id, customerId: ctCart?.customerId, anonymousId: ctCart?.anonymousId });
-    } catch (err: any) {
-      log.error('service-customer-address - failed to fetch cart', err);
-      // safe fallback
-      return { paymentReference: 'customAddress' } as PaymentResponseSchemaDTO;
-    }
-	// Correct types
-	let customerAddress: Customer | null = null;
-	let shippingAddress: Address | null = null;
-	let billingAddress: Address | null = null;
-
-	if (ctCart.customerId) {
-	  const customerRes = await projectApiRoot
-		.customers()
-		.withId({ ID: ctCart.customerId })
-		.get()
-		.execute();
-
-	  customerAddress = customerRes.body; // OK
-	} else {
-	  shippingAddress = ctCart.shippingAddress ?? null;
-	  billingAddress = ctCart.billingAddress ?? null;
-	}
-
- 
-    const result: PaymentResponseSchemaDTO = {
-      paymentReference: 'customAddress',
-    } as PaymentResponseSchemaDTO;
-    try {
-	(result as any).customerAddress = customerAddress;
-	(result as any).shippingAddress = shippingAddress;
-	(result as any).billingAddress = billingAddress;
-    } catch (e) {
-      // ignore; these are convenience properties when DTO isn't extended
+      log.info("ctCart fetched", {
+        id: ctCart.id,
+        customerId: ctCart.customerId,
+        anonymousId: ctCart.anonymousId,
+      });
+    } catch (err) {
+      log.error("Failed to fetch cart", err);
+      return { paymentReference: "customAddress" };
     }
   
-    log.info('service-customer-address - returning', {
-      customerAddressPresent: !!customerAddress,
+    // -----------------------------
+    // 3) Always prefer CART addresses
+    // -----------------------------
+    let shippingAddress: Address | null = ctCart.shippingAddress ?? null;
+    let billingAddress: Address | null = ctCart.billingAddress ?? null;
+  
+    // -----------------------------
+    // 4) Prepare customer fields
+    // -----------------------------
+    let firstName: string =
+      shippingAddress?.firstName ?? ctCart.customerFirstName ?? "";
+    let lastName: string =
+      shippingAddress?.lastName ?? ctCart.customerLastName ?? "";
+    let email: string = ctCart.customerEmail ?? "";
+  
+    // -----------------------------
+    // 5) If this is a logged-in customer, fetch missing fields from CT
+    // -----------------------------
+    if (ctCart.customerId) {
+      try {
+        const apiRoot =
+          (this as any).projectApiRoot ?? (globalThis as any).projectApiRoot ?? projectApiRoot;
+  
+        const customerRes = await apiRoot
+          .customers()
+          .withId({ ID: ctCart.customerId })
+          .get()
+          .execute();
+  
+        const ctCustomer: Customer = customerRes.body;
+  
+        // override only if missing
+        if (!firstName) firstName = ctCustomer.firstName ?? "";
+        if (!lastName) lastName = ctCustomer.lastName ?? "";
+        if (!email) email = ctCustomer.email ?? "";
+  
+        log.info("Customer data fetched", {
+          id: ctCustomer.id,
+          email: ctCustomer.email,
+        });
+      } catch (err) {
+        log.warn("Failed to fetch customer data, using cart only", {
+          cartCustomerId: ctCart.customerId,
+          error: String(err),
+        });
+        // cart fallback already applied
+      }
+    }
+  
+    // -----------------------------
+    // 6) Final Response
+    // -----------------------------
+    const result: PaymentResponseSchemaDTO = {
+      paymentReference: "customAddress",
+      firstName,
+      lastName,
+      email,
+      shippingAddress,
+      billingAddress,
+    } as any;
+  
+    log.info("service-customer-address - returning", {
+      paymentReference: result.paymentReference,
+      firstName,
+      lastName,
+      email,
       shippingAddressPresent: !!shippingAddress,
       billingAddressPresent: !!billingAddress,
     });
   
     return result;
   }
+  
   
 
   public async createPaymentt({ data }: { data: any }) {
