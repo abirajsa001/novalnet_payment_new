@@ -882,28 +882,34 @@ public async updateTxComment(paymentId: string, txId: string, comment: string) {
 
     if (String(request.data.paymentMethod.type).toUpperCase() ===
     "DIRECT_DEBIT_SEPA") {
-    transaction.payment_data = {
-        account_holder: String(request.data.paymentMethod.poNumber),
-        iban: String(request.data.paymentMethod.invoiceMemo),
-    };
-}
-if (String(request.data.paymentMethod.type).toUpperCase() ===
-    "DIRECT_DEBIT_ACH") {
-    transaction.payment_data = {
-        account_holder: String(request.data.paymentMethod.accHolder),
-        account_number: String(request.data.paymentMethod.poNumber),
-        routing_number: String(request.data.paymentMethod.invoiceMemo),
-    };
-}
-if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
-    if(enforce3d == '1') {
-        transaction.enforce_3d = 1
+      transaction.payment_data = {
+          account_holder: String(request.data.paymentMethod.accHolder),
+          iban: String(request.data.paymentMethod.iban),
+      };
     }
-    transaction.payment_data = {
-        pan_hash: String(request.data.paymentMethod.panHash),
-        unique_id: String(request.data.paymentMethod.uniqueId),
-    };
-}
+    if (String(request.data.paymentMethod.type).toUpperCase() ===
+    "DIRECT_DEBIT_SEPA" && (String(request.data.paymentMethod.bic) != '')) {
+      transaction.payment_data = {
+          bic: String(request.data.paymentMethod.bic),
+      };
+    }
+  if (String(request.data.paymentMethod.type).toUpperCase() ===
+      "DIRECT_DEBIT_ACH") {
+      transaction.payment_data = {
+          account_holder: String(request.data.paymentMethod.accHolder),
+          account_number: String(request.data.paymentMethod.poNumber),
+          routing_number: String(request.data.paymentMethod.invoiceMemo),
+      };
+  }
+  if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
+      if(enforce3d == '1') {
+          transaction.enforce_3d = 1
+      }
+      transaction.payment_data = {
+          pan_hash: String(request.data.paymentMethod.panHash),
+          unique_id: String(request.data.paymentMethod.uniqueId),
+      };
+  }
 
 const ctPayment = await this.ctPaymentService.createPayment({
   amountPlanned: await this.ctCartService.getPaymentAmount({
