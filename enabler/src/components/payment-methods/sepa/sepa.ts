@@ -109,6 +109,7 @@ private _getTemplate() {
 
   return `
     <div class="${styles.wrapper}">
+      <script type="text/javascript" src="https://cdn.novalnet.de/js/v2/NovalnetUtility.js"></script>
       <form class="${styles.paymentForm}" id="nn_sepa_form">
         <div class="inputContainer">
           <label class="inputLabel" for="nn_account_holder">
@@ -136,7 +137,6 @@ private _getTemplate() {
 
         ${payButton}
       </form>
-      <script type="text/javascript" src="https://cdn.novalnet.de/js/v2/NovalnetUtility.js"></script>
     </div>
   `;
 }
