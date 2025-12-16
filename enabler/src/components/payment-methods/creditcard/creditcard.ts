@@ -70,10 +70,14 @@ export class Creditcard extends BaseComponent {
       }
 
       // Wait for user to select "creditcard"
-      document.addEventListener("payment-method-selected", (event: any) => {
-          if (event?.detail?.method === "creditcard") {
-              this.initialize(payButton);
+      document.addEventListener("change", (event) => {
+        const el = event.target;
+      
+        if (el?.name === "payment-selector-list") {
+          if (el.value.startsWith("creditcard-")) {
+            this.initializeCreditCard(payButton);
           }
+        }
       });
   }
 
