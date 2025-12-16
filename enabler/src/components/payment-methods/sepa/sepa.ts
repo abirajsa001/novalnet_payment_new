@@ -230,6 +230,4 @@ export class Sepa extends BaseComponent {
       </div>
     `;
   }
-  
-
 }

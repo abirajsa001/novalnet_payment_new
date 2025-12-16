@@ -70,12 +70,12 @@ export class Creditcard extends BaseComponent {
       }
 
       // Wait for user to select "creditcard"
-      document.addEventListener("change", (event) => {
+      document.addEventListener("click", (event) => {
         const el = event.target;
       
         if (el?.name === "payment-selector-list") {
           if (el.value.startsWith("creditcard-")) {
-            this.initializeCreditCard(payButton);
+            this.initialize(payButton);
           }
         }
       });
@@ -90,11 +90,11 @@ export class Creditcard extends BaseComponent {
 
       try {
           await this.loadNovalnetScript();
-          await this.loadConfig();
+          await this.getConfigValues();
           await this.loadCustomerAddress();
           await this.initIframe(payButton);
       } catch (err) {
-          console.error("Creditcard initialization failed:", err);
+          console.error("Creditcard initialization failed:", err); 
           this.onError?.("Failed to load credit card form.");
       }
   }
@@ -103,72 +103,94 @@ export class Creditcard extends BaseComponent {
      SUBMIT — called after panHash is generated
   ========================================================================= */
   async submit() {
-      try {
-          const panHash = (document.getElementById("pan_hash") as HTMLInputElement)?.value;
-          const uniqueId = (document.getElementById("unique_id") as HTMLInputElement)?.value;
+    // initialize sdk for the request if needed
+    try {
+      this.sdk.init({ environment: this.environment });
+    } catch (e) {
+      console.warn("SDK init failed (continuing):", e);
+    }
 
-          if (!panHash || !uniqueId) {
-              this.onError("Invalid or missing card token.");
-              return;
-          }
+    try {
+      const panhashInput = document.getElementById("pan_hash") as HTMLInputElement | null;
+      const uniqueIdInput = document.getElementById("unique_id") as HTMLInputElement | null;
+      const doRedirectInput = document.getElementById("do_redirect") as HTMLInputElement | null;
 
-          const payload: PaymentRequestSchemaDTO = {
-              paymentMethod: {
-                  type: "CREDITCARD",
-                  panHash,
-                  uniqueId,
-              },
-              paymentOutcome: PaymentOutcome.AUTHORIZED,
-          };
+      const panhash = panhashInput?.value?.trim() ?? "";
+      const uniqueId = uniqueIdInput?.value?.trim() ?? "";
+      const doRedirect = doRedirectInput?.value?.trim() ?? "";
 
-          const res = await fetch(this.processorUrl + "/payment", {
-              method: "POST",
-              headers: {
-                  "Content-Type": "application/json",
-                  "X-Session-Id": this.sessionId,
-              },
-              body: JSON.stringify(payload),
-          });
+      console.log("PAN HASH:", panhash);
+      console.log("UNIQUE ID:", uniqueId);
+      console.log("DO REDIRECT:", doRedirect);
 
-          if (!res.ok) {
-              this.onError("Payment failed.");
-              return;
-          }
-
-          const json = await res.json();
-
-          if (json?.paymentReference) {
-              this.onComplete?.({
-                  isSuccess: true,
-                  paymentReference: json.paymentReference,
-              });
-          } else {
-              this.onError("Payment failed.");
-          }
-      } catch (err) {
-          this.onError("Unexpected error occurred.");
+      if (!panhash || !uniqueId) {
+        this.onError("Credit card information is missing or invalid.");
+        return;
       }
-  }
 
+      const requestData: PaymentRequestSchemaDTO = {
+        paymentMethod: {
+          type: "CREDITCARD",
+          panHash: panhash,
+          uniqueId: uniqueId,
+          doRedirect: doRedirect,
+        },
+        paymentOutcome: PaymentOutcome.AUTHORIZED,
+      };
+
+      const response = await fetch(this.processorUrl + "/payment", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Session-Id": this.sessionId,
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      if (!response.ok) {
+        console.error("Payment endpoint returned non-200:", response.status);
+        const text = await response.text().catch(() => "");
+        console.error("Payment response body:", text);
+        this.onError("Payment failed. Please try again.");
+        return;
+      }
+
+      const data = await response.json().catch((e) => {
+        console.error("Failed parsing payment response JSON:", e);
+        return null;
+      });
+
+      if (data && data.paymentReference) {
+        this.onComplete?.({
+          isSuccess: true,
+          paymentReference: data.paymentReference,
+        });
+      } else {
+        console.warn("Payment response missing paymentReference:", data);
+        this.onError("Payment failed. Please try again.");
+      }
+    } catch (e) {
+      console.error("submit() error:", e);
+      this.onError("Some error occurred. Please try again.");
+    }
+  }
   /* =========================================================================
      TEMPLATE
   ========================================================================= */
   private template() {
-      return `
+    const payButton = this.showPayButton
+      ? `<button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="purchaseOrderForm-paymentButton">Pay</button>`
+      : "";
+
+    return `
       <div class="${styles.wrapper}">
           <iframe id="novalnet_iframe" frameborder="0" scrolling="no"></iframe>
-
-          <input type="hidden" id="pan_hash" />
-          <input type="hidden" id="unique_id" />
-
-          ${
-              this.showPayButton
-                  ? `<button id="purchaseOrderForm-paymentButton" class="${buttonStyles.button} ${buttonStyles.fullWidth}">
-                      Pay
-                    </button>`
-                  : ""
-          }
-      </div>`;
+          <input type="hidden" id="pan_hash" name="pan_hash"/>
+          <input type="hidden" id="unique_id" name="unique_id"/>
+          <input type="hidden" id="do_redirect" name="do_redirect"/>
+          ${payButton}
+      </div>
+    `;
   }
 
   /* =========================================================================
@@ -191,16 +213,56 @@ export class Creditcard extends BaseComponent {
   /* =========================================================================
      LOAD CONFIG (must contain clientKey)
   ========================================================================= */
-  private async loadConfig() {
-      const res = await fetch(this.processorUrl + "/getconfig", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ paymentMethod: { type: "CREDITCARD" } }),
+  private async getConfigValues() {
+    try {
+      const requestData = {
+        paymentMethod: { type: "CREDITCARD" },
+        paymentOutcome: "AUTHORIZED",
+      };
+    
+      const body = JSON.stringify(requestData);
+      console.log("Outgoing body string:", body);
+    
+      const response = await fetch(this.processorUrl + "/getconfig", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          // no X-Session-Id for public client call
+        },
+        body,
       });
-
-      const json = await res.json();
-
-      this.clientKey = json?.clientKey;
+    
+      console.log("Network response status:", response.status, response.statusText, "type:", response.type);
+    
+      // Inspect content-type header before parsing
+      const contentType = response.headers.get("Content-Type") ?? response.headers.get("content-type");
+      console.log("Response Content-Type:", contentType);
+    
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        console.warn("getconfig returned non-200:", response.status, text);
+      } else if (contentType && contentType.includes("application/json")) {
+        const json = await response.json().catch((err) => {
+          console.error("Failed to parse JSON response:", err);
+          return null;
+        });
+        console.log("parsed response JSON:", json);
+    
+        if (json && json.paymentReference) {
+          this.clientKey = String(json.paymentReference);
+          console.log("Client key set from server:", this.clientKey);
+        } else {
+          console.warn("JSON response missing paymentReference:", json);
+        }
+      } else {
+        // fallback: treat as plain text
+        const text = await response.text().catch(() => "");
+        console.log("Response text (non-JSON):", text);
+      }
+    } catch (err) {
+      console.warn("initPaymentProcessor: getconfig fetch failed (non-fatal):", err);
+    }
       if (!this.clientKey) throw new Error("Missing clientKey");
 
       const NovalnetUtility = (window as any).NovalnetUtility;
@@ -211,16 +273,66 @@ export class Creditcard extends BaseComponent {
      LOAD CUSTOMER DETAILS
   ========================================================================= */
   private async loadCustomerAddress() {
-      const res = await fetch(this.processorUrl + "/getCustomerAddress", {
-          method: "POST",
-          headers: {
-              "Content-Type": "application/json",
-              "X-Session-Id": this.sessionId,
-          },
-          body: JSON.stringify({ paymentMethod: { type: "CREDITCARD" } }),
-      });
+    try {
+      const requestData = {
+        paymentMethod: { type: "CREDITCARD" },
+        paymentOutcome: "AUTHORIZED",
+      };
+    
+      const body = JSON.stringify(requestData);
+      console.log("Outgoing body string:", body);
+      const currentCartId = window.localStorage.getItem('cartId');
+      console.log(currentCartId ?? 'not-current-cart-id');
 
-      this.customer = res.ok ? await res.json() : {};
+      const currentCartId2 = window.localStorage.getItem('cart-id');
+      console.log(currentCartId2 ?? 'not-current-cart-id2');
+      console.log(this.sessionId ?? 'sessionId');
+
+      const response = await fetch(this.processorUrl + "/getCustomerAddress", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "X-Session-Id": this.sessionId, 
+        },
+        body,
+      });
+    
+      console.log("Network response status:", response.status, response.statusText, "type:", response.type);
+    
+      // Inspect content-type header before parsing
+      const contentType = response.headers.get("Content-Type") ?? response.headers.get("content-type");
+      console.log("Response Content-Type:", contentType);
+    
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        console.warn("getconfig returned non-200:", response.status, text);
+      } else if (contentType && contentType.includes("application/json")) {
+        const json = await response.json().catch((err) => {
+          console.error("Failed to parse JSON response:", err);
+          return null;
+        });
+        console.log("parsed response JSON:", json);
+    
+        if (json && json.firstName) {
+          this.firstName = String(json.firstName);
+          this.lastName = String(json.lastName);
+          this.email = String(json.email);
+          this.json = json;
+          console.log("Customer Address set from server:", this.firstName);
+          console.log(String(json.billingAddress.firstName));
+          console.log(String(json.shippingAddress.lastName));
+        } else {
+          console.warn("JSON response missing paymentReference:", json);
+        }
+      } else {
+        // fallback: treat as plain text
+        const text = await response.text().catch(() => "");
+        console.log("Response text (non-JSON):", text);
+      }
+    } catch (err) {
+      console.warn("initPaymentProcessor: getconfig fetch failed (non-fatal):", err);
+    }
   }
 
   /* =========================================================================
@@ -245,18 +357,24 @@ export class Creditcard extends BaseComponent {
               inline: 1,
           },
           customer: {
-              first_name: this.customer?.firstName ?? "",
-              last_name: this.customer?.lastName ?? "",
-              email: this.customer?.email ?? "",
-              billing: {
-                  street: this.customer?.billingAddress?.streetName ?? "",
-                  city: this.customer?.billingAddress?.city ?? "",
-                  zip: this.customer?.billingAddress?.postalCode ?? "",
-                  country_code: this.customer?.billingAddress?.country ?? "",
-              },
-              shipping: {
-                  same_as_billing: 1,
-              },
+            first_name: this.firstName,
+            last_name: this.lastName,
+            email: this.email,
+            billing: {
+              street: String(this.json.billingAddress.streetName),
+              city: String(this.json.billingAddress.city),
+              zip: String(this.json.billingAddress.postalCode),
+              country_code: String(this.json.billingAddress.country),
+            },
+            shipping: {
+              same_as_billing: 1,
+              first_name: String(this.json.billingAddress.firstName),
+              last_name: String(this.json.billingAddress.lastName),
+              street: String(this.json.billingAddress.streetName),
+              city: String(this.json.billingAddress.city),
+              zip: String(this.json.billingAddress.postalCode),
+              country_code: String(this.json.billingAddress.country),
+            },
           },
       };
 
