@@ -221,7 +221,9 @@ export class Creditcard extends BaseComponent {
               },
               paymentOutcome: PaymentOutcome.AUTHORIZED,
             };
-
+             console.log('panhash'); 
+             console.log(panHash); 
+             console.log(uniqueId); 
             const res = await fetch(this.processorUrl + "/payment", {
               method: "POST",
               headers: {
