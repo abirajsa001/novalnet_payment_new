@@ -12,6 +12,7 @@ import {
   PaymentRequestSchemaDTO,
 } from "../../../dtos/mock-payment.dto";
 import { BaseOptions } from "../../../payment-enabler/payment-enabler-mock";
+import ccImage from "../../../img/novalnet_cc.png";
 
 export class PrepaymentBuilder implements PaymentComponentBuilder {
   public componentHasSubmit = true;
@@ -92,8 +93,9 @@ export class Prepayment extends BaseComponent {
     return this.showPayButton
       ? `
     <div class="${styles.wrapper}">
-      <img src="../../../img/novalnet_cc.png" alt="Visa" width="23" height="16" style="margin-bottom:8px;"/>
+      
       <p>Pay easily with Prepayment and transfer the shopping amount within the specified date.</p>
+       <img src="${ccImage}" alt="Visa" width="23" height="16" style="margin-bottom:8px;" />
       <button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="purchaseOrderForm-paymentButton">Pay</button>
     </div>
     `
