@@ -223,7 +223,7 @@ export class Sepa extends BaseComponent {
               "
             >Invalid BIC</span>
           </div>
-  
+  <img id="creditCardForm-visa" src="https://www.visa.co.in/dam/VCOM/regional/ap/india/global-elements/images/in-visa-classic-card-498x280.png" width="23" height="16" alt="">
           ${payButton}
   
         </form>

@@ -92,6 +92,7 @@ export class Prepayment extends BaseComponent {
     return this.showPayButton
       ? `
     <div class="${styles.wrapper}">
+      <img src="../../../img/novalnet_cc.png" alt="Visa" width="23" height="16" style="margin-bottom:8px;"/>
       <p>Pay easily with Prepayment and transfer the shopping amount within the specified date.</p>
       <button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="purchaseOrderForm-paymentButton">Pay</button>
     </div>
