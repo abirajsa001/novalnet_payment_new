@@ -12,7 +12,7 @@ import {
   PaymentRequestSchemaDTO,
 } from "../../../dtos/mock-payment.dto";
 import { BaseOptions } from "../../../payment-enabler/payment-enabler-mock";
-import ccImage from "../../../img/novalnet_cc.png";
+
 
 export class PrepaymentBuilder implements PaymentComponentBuilder {
   public componentHasSubmit = true;
@@ -90,6 +90,10 @@ export class Prepayment extends BaseComponent {
   }
 
   private _getTemplate() {
+    const ccImage = new URL("../../../img/novalnet_cc.png", import.meta.url).href;
+
+    console.log("ccImage value:", ccImage);
+    console.log(ccImage);
     return this.showPayButton
       ? `
     <div class="${styles.wrapper}">
