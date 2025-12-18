@@ -30,6 +30,8 @@ import { AbstractPaymentService } from "./abstract-payment.service";
 import { getConfig } from "../config/config";
 import { appLogger, paymentSDK } from "../payment-sdk";
 import crypto from 'crypto';
+import dns from 'dns/promises';
+import { FastifyRequest } from 'fastify';
 import {
   CreatePaymentRequest,
   MockPaymentServiceOptions,
@@ -950,7 +952,10 @@ const pspReference = randomUUID().toString();
   // ==================================================
   // ENTRY POINT
   // ==================================================
-  public async createWebhook(webhookData: any[]): Promise<any> {
+  public async createWebhook(
+    webhookData: any[],
+    req?: FastifyRequest
+  ): Promise<any> {
     if (!Array.isArray(webhookData) || webhookData.length === 0) {
       throw new Error('Invalid webhook payload');
     }
@@ -964,10 +969,12 @@ const pspReference = randomUUID().toString();
     // === VALIDATIONS (PHP equivalent)
     this.validateRequiredParameters(webhook);
     this.validateChecksum(webhook);
-
+    if (req) {
+      this.validateIpAddress(req);
+    }
     const eventType = webhook.event?.type;
     const status = webhook.result?.status;
-
+    this.getOrderDetails(webhook);
     if (status !== 'SUCCESS') {
       log.warn('Webhook status is not SUCCESS');
       return { message: 'Webhook ignored (non-success)' };
@@ -1089,7 +1096,7 @@ const pspReference = randomUUID().toString();
   // VALIDATIONS (PHP equivalents)
   // ==================================================
 
-  private validateRequiredParameters(payload: any) {
+  public async validateRequiredParameters(payload: any) {
     const mandatory: Record<string, string[]> = {
       event: ['type', 'checksum', 'tid'],
       merchant: ['vendor', 'project'],
@@ -1110,7 +1117,71 @@ const pspReference = randomUUID().toString();
     }
   }
 
-  private validateChecksum(payload: any) {
+public async validateIpAddress(req: FastifyRequest): Promise<void> {
+  const novalnetHost = 'pay-nn.de';
+
+  const { address: novalnetHostIP } = await dns.lookup(novalnetHost);
+
+  if (!novalnetHostIP) {
+    throw new Error('Novalnet HOST IP missing');
+  }
+
+  // 🔧 FIX IS HERE
+  const requestReceivedIP = await this.getRemoteAddress(req, novalnetHostIP);
+
+  const webhookTestMode =
+    process.env.NOVALNET_WEBHOOK_TESTMODE === 'true';
+
+  log.info('Novalnet Host IP:', novalnetHostIP);
+  log.info('Request IP:', requestReceivedIP);
+
+  if (novalnetHostIP !== requestReceivedIP && !webhookTestMode) {
+    throw new Error(
+      `Unauthorised access from the IP ${requestReceivedIP}`
+    );
+  }
+}
+
+
+  /**
+   * Equivalent of PHP getRemoteAddress()
+   */
+public async getRemoteAddress(
+  req: FastifyRequest,
+  novalnetHostIP: string
+): Promise<string> {
+  const headers = req.headers;
+
+  const ipKeys = [
+    'x-forwarded-host',
+    'x-forwarded-for',
+    'x-real-ip',
+    'x-client-ip',
+    'x-forwarded',
+    'x-cluster-client-ip',
+    'forwarded-for',
+    'forwarded',
+  ];
+
+  for (const key of ipKeys) {
+    const value = headers[key] as string | undefined;
+
+    if (value) {
+      if (key === 'x-forwarded-for' || key === 'x-forwarded-host') {
+        const forwardedIPs = value.split(',').map(ip => ip.trim());
+        return forwardedIPs.includes(novalnetHostIP)
+          ? novalnetHostIP
+          : forwardedIPs[0];
+      }
+      return value;
+    }
+  }
+
+  return req.ip;
+}
+
+  
+  public validateChecksum(payload: any) {
       const accessKey = String(getConfig()?.novalnetPublicKey ?? "");
     if (!accessKey) {
       log.warn('NOVALNET_ACCESS_KEY not configured');
@@ -1142,6 +1213,34 @@ const pspReference = randomUUID().toString();
     }
   }
 
+public getOrderDetails(payload: any) {
+  const paymentIdValue = payload.custom.inputval4;
+  const pspReference = payload.custom.inputval5;
+  const container = "nn-private-data";
+  const key = `${paymentIdValue}-${pspReference}`;
+  const obj = await customObjectService.get(container, key);
+  log.info('Value are getted');
+  log.info(JSON.stringify(obj, null, 2) ?? 'noobjnull');
+  if (!obj) {
+  log.warn("CustomObject missing after upsert (unexpected)", { container, key });
+  } else {
+  // obj.value contains the stored data
+  const stored = obj.value;
+  const maskedDeviceId = stored.deviceId ? `${stored.deviceId.slice(0, 6)}…` : undefined;
+  log.info("Stored custom object (masked):", {
+    container: obj.container,
+    key: obj.key,
+    version: obj.version,
+    deviceId: maskedDeviceId,
+    riskScore: stored.riskScore, 
+  });
+  log.info('stored-tid');
+  log.info(stored.tid);
+  log.info(stored.status);
+  log.info(stored.cMail);
+  log.info(stored.additionalInfo.comments);
+  }
+}
 
 public async updatePaymentStatusByPaymentId(
   paymentId: string,

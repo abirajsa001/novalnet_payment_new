@@ -333,8 +333,8 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
     } catch (error) {
       log.error(error);
   
-      return reply.code(500).send({
-        success: false,
+      return reply.code(500).send({ 
+        success: false, 
         message: 'Webhook processing failed',
       });
     }
