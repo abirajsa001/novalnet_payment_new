@@ -1213,7 +1213,7 @@ public async getRemoteAddress(
     }
   }
 
-public getOrderDetails(payload: any) {
+public async getOrderDetails(payload: any) {
   const paymentIdValue = payload.custom.inputval4;
   const pspReference = payload.custom.inputval5;
   const container = "nn-private-data";
