@@ -9,18 +9,18 @@ import {
 } from "@commercetools/platform-sdk";
 
 
-const projectKey = 'commercekey';
+const projectKey = 'testkeyproject';
 const authUrl = 'https://auth.europe-west1.gcp.commercetools.com';
 const apiUrl = 'https://api.europe-west1.gcp.commercetools.com';
-const clientId = 'zzykDtn0B_bBov_EVqk0Hvo-';
-const clientSecret = '9vrhw1oyV27jiLvlOvQJpR__UVhd6ETy';
+const clientId = '4Qov22_iYZi5Z0Ed5_-bVcf3';
+const clientSecret = 'HzP7uITPekVYNp9VTXtFSGjkRllCF-cd';
 
 const authMiddlewareOptions: AuthMiddlewareOptions = {
   host: "https://auth.europe-west1.gcp.commercetools.com",
   projectKey,
   credentials: {
-    clientId: 'zzykDtn0B_bBov_EVqk0Hvo-',
-    clientSecret: '9vrhw1oyV27jiLvlOvQJpR__UVhd6ETy',
+    clientId: '4Qov22_iYZi5Z0Ed5_-bVcf3',
+    clientSecret: 'HzP7uITPekVYNp9VTXtFSGjkRllCF-cd',
   },
 };
 
