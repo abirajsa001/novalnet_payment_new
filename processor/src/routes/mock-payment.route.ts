@@ -313,13 +313,9 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
 
   fastify.post('/webhook', async (req, reply) => {
     const body = req.body as Record<string, any> | any[];
-  
     const responseData = Array.isArray(body) ? body : [body];
-  
     const webhook = responseData[0] as Record<string, any>;
-  
-    log.info(webhook.checksum);
-  
+    log.info(webhook?.event?.checksum);
     return reply.send(responseData);
   });
   
