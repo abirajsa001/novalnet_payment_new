@@ -316,12 +316,13 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
 
 	  const responseData = Array.isArray(body)
 		? body
-		: Object.values(body);
-
+		: [body];
+    const webhook = responseData[0];
+    log.info('checksum');
+    log.info(webhook.checksum);
 	  return reply.send(responseData);
 	});
 
-  
   
   fastify.get<{
     Querystring: PaymentRequestSchemaDTO;
