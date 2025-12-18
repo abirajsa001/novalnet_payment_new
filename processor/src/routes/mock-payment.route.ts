@@ -319,7 +319,7 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
     if (Array.isArray(body)) {
       responseData = body; // already an array
     } else {
-      responseData = [body]; // convert object → array
+      responseData = json_decode(body); // convert object → array
     }
   
     return reply.send(responseData);
