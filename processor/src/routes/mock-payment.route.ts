@@ -313,28 +313,34 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
   fastify.post<{ Body: any }>('/webhook', async (req, reply) => {
     try {
       const body = req.body as Record<string, any> | any[];
+  
+      // normalize payload → always array
       const responseData = Array.isArray(body) ? body : [body];
+  
       const webhook = responseData[0] as Record<string, any>;
+  
       log.info('route-webhook');
-      log.info(webhook?.event?.checksum);
+      log.info('checksum:', webhook?.event?.checksum);
   
       // Call service
       const serviceResponse = await opts.paymentService.createWebhook(responseData);
   
-      // Return success response
+      // Novalnet expects 200 OK
       return reply.code(200).send({
         success: true,
         data: serviceResponse,
       });
     } catch (error) {
-      log.info('Webhook processing failed');
-      log.info(error, 'Webhook processing failed');
+      log.error(error, 'Webhook processing failed');
+  
       return reply.code(500).send({
         success: false,
         message: 'Webhook processing failed',
       });
     }
   });
+  
+  
   
   
   fastify.get<{
