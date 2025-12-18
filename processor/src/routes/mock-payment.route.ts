@@ -311,15 +311,16 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
     return reply.send("sucess");
   });
 
-  fastify.post<{ Body: any }>('/webhook', async (req, reply) => {
-    const body = req.body;
-  
-    const responseData = Array.isArray(body)
-      ? body
-      : Object.values(body);
-  
-    return reply.send(responseData);
-  });
+	fastify.post('/webhook', async (req, reply) => {
+	  const body = req.body as Record<string, unknown> | unknown[];
+
+	  const responseData = Array.isArray(body)
+		? body
+		: Object.values(body);
+
+	  return reply.send(responseData);
+	});
+
   
   
   fastify.get<{
