@@ -1042,6 +1042,48 @@ const pspReference = randomUUID().toString();
   // ==================================================
 
   private handlePayment(webhook: any) {
+    const transactionComments = `Novalnet Transaction ID: ${responseData?.transaction?.tid ?? "NN/AA"}\nPayment Type: ${responseData?.transaction?.payment_type ?? "NN/AA"}\n${testModeText ?? "NN/AA"}`;
+
+log.info("callback update");
+const raw = await this.ctPaymentService.getPayment({ id: payload.custom.inputval4 } as any);
+const payment = (raw as any)?.body ?? raw;
+const version = payment.version;
+const tx = payment.transactions?.find((t: any) =>
+  t.interactionId === parsedData.pspReference
+);
+if (!tx) throw new Error("Transaction not found");
+const txId = tx.id;
+if (!txId) throw new Error('Transaction missing id');
+log.info(txId);
+log.info(payload.custom.inputval4);
+log.info(transactionComments);
+const statusCode = payload?.transaction?.status_code ?? '';
+const updatedPayment = await projectApiRoot
+.payments()
+.withId({ ID: payload.custom.inputval4 })
+.post({
+body: {
+  version,
+  actions: [
+	{
+	  action: "setTransactionCustomField",
+	  transactionId: txId,
+	  name: "transactionComments",
+	  value: transactionComments,
+	},
+	{
+	  action: "setStatusInterfaceCode",
+	  interfaceCode: String(statusCode)
+	},
+	{
+	  action: 'changeTransactionState',
+	  transactionId: txId,
+	  state: 'Success',
+	},
+  ],
+},
+})
+.execute();
     log.info('PAYMENT event', {
       tid: webhook.event.tid,
     });
