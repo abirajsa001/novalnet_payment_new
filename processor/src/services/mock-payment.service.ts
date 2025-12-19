@@ -983,7 +983,7 @@ const pspReference = randomUUID().toString();
     // === EVENT ROUTING
     switch (eventType) {
       case 'PAYMENT':
-        this.handlePayment(webhook);
+        await this.handlePayment(webhook);
         break;
 
       case 'TRANSACTION_CAPTURE':
@@ -1041,26 +1041,26 @@ const pspReference = randomUUID().toString();
   // EVENT HANDLERS
   // ==================================================
 
-  private handlePayment(webhook: any) {
-    const transactionComments = `Novalnet Transaction ID: ${responseData?.transaction?.tid ?? "NN/AA"}\nPayment Type: ${responseData?.transaction?.payment_type ?? "NN/AA"}\n${testModeText ?? "NN/AA"}`;
+  public async handlePayment(webhook: any) {
+    const transactionComments = `Novalnet Transaction ID: ${"NN/AA"}\nPayment Type: ${"NN/AA"}\nStatus: ${"NN/AA"}`;
 
 log.info("callback update");
-const raw = await this.ctPaymentService.getPayment({ id: payload.custom.inputval4 } as any);
+const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 } as any);
 const payment = (raw as any)?.body ?? raw;
 const version = payment.version;
 const tx = payment.transactions?.find((t: any) =>
-  t.interactionId === parsedData.pspReference
+  t.interactionId === webhook.custom.inputval5
 );
 if (!tx) throw new Error("Transaction not found");
 const txId = tx.id;
 if (!txId) throw new Error('Transaction missing id');
 log.info(txId);
-log.info(payload.custom.inputval4);
+log.info(webhook.custom.inputval4);
 log.info(transactionComments);
-const statusCode = payload?.transaction?.status_code ?? '';
+const statusCode = webhook?.transaction?.status_code ?? '';
 const updatedPayment = await projectApiRoot
 .payments()
-.withId({ ID: payload.custom.inputval4 })
+.withId({ ID: webhook.custom.inputval4 })
 .post({
 body: {
   version,
