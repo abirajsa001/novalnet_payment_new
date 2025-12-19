@@ -503,6 +503,8 @@ export class MockPaymentService extends AbstractPaymentService {
     const paymentRef = responseData?.custom?.paymentRef ?? "";
     const pspReference = parsedData?.pspReference;
     const testModeText = responseData?.transaction?.test_mode == 1 ? 'Test Order' : '';
+    const status = responseData?.transaction?.status;
+    const state = status === 'PENDING' || status === 'ON_HOLD' ? 'Pending' : status === 'CONFIRMED' ? 'Success' : status === 'CANCELLED' ? 'Canceled': 'Failure';
     const transactionComments = `Novalnet Transaction ID: ${responseData?.transaction?.tid ?? "NN/A"}\nPayment Type: ${responseData?.transaction?.payment_type ?? "NN/A"}\n${testModeText ?? "NN/A"}`;
     const statusCode = responseData?.transaction?.status_code ?? '';
     log.info("Payment created with Novalnet details for redirect:");
@@ -518,6 +520,7 @@ export class MockPaymentService extends AbstractPaymentService {
 	if (!tx) throw new Error("Transaction not found");
 	const txId = tx.id;
 	if (!txId) throw new Error('Transaction missing id');
+  
 	log.info(txId);
   log.info(parsedData.ctPaymentId);
   log.info(transactionComments);
@@ -541,7 +544,7 @@ export class MockPaymentService extends AbstractPaymentService {
         {
           action: 'changeTransactionState',
           transactionId: txId,
-          state: 'Pending',
+          state: state,
         },
       ],
     },
@@ -808,6 +811,8 @@ const pspReference = randomUUID().toString();
     const parsedResponse = JSON.parse(responseString);
     const statusCode = parsedResponse?.transaction?.status_code;
     const testModeText = parsedResponse?.transaction?.test_mode == 1 ? 'Test Order' : '';
+    const status = parsedResponse?.transaction?.status;
+    const state = status === 'PENDING' || status === 'ON_HOLD' ? 'Pending' : status === 'CONFIRMED' ? 'Success' : status === 'CANCELLED' ? 'Canceled': 'Failure';
     const transactiondetails = `Novalnet Transaction ID: ${parsedResponse?.transaction?.tid ?? "NN/A"}\nPayment Type: ${parsedResponse?.transaction?.payment_type ?? "NN/A"}\n${testModeText ?? "NN/A"}`;
 
     let bankDetails = "";
@@ -833,7 +838,7 @@ const pspReference = randomUUID().toString();
         type: "Authorization",
         amount: ctPayment.amountPlanned,
         interactionId: pspReference,
-        state: "Pending",
+        state: state,
         custom: {
           type: {
           typeId: "type",
