@@ -1,6 +1,6 @@
 import { Payment, Transaction } from '@commercetools/connect-payments-sdk';
 
-const mockChargePaymentTransaction: Transaction = {
+const novalnetChargePaymentTransaction: Transaction = {
   id: 'dummy-transaction-id',
   timestamp: '2024-02-13T00:00:00.000Z',
   type: 'Charge',
@@ -12,8 +12,8 @@ const mockChargePaymentTransaction: Transaction = {
   },
   state: 'Success',
 };
-console.log('mock-payment.service.spec.ts-test');
-export const mockGetPaymentResult: Payment = {
+console.log('novalnet-payment.service.spec.ts-test');
+export const novalnetGetPaymentResult: Payment = {
   id: '123456',
   version: 1,
   amountPlanned: {
@@ -28,13 +28,13 @@ export const mockGetPaymentResult: Payment = {
     name: { 'en-US': 'Debit Card', 'en-GB': 'Debit Card' },
   },
   paymentStatus: { interfaceText: 'Paid' },
-  transactions: [mockChargePaymentTransaction],
+  transactions: [novalnetChargePaymentTransaction],
   interfaceInteractions: [],
   createdAt: '2024-02-13T00:00:00.000Z',
   lastModifiedAt: '2024-02-13T00:00:00.000Z',
 };
 
-export const mockGetPaymentResultWithoutTransactions: Payment = {
+export const novalnetGetPaymentResultWithoutTransactions: Payment = {
   id: '123456',
   version: 1,
   amountPlanned: {
@@ -55,7 +55,7 @@ export const mockGetPaymentResultWithoutTransactions: Payment = {
   lastModifiedAt: '2024-02-13T00:00:00.000Z',
 };
 
-const mockCancelPaymentTransaction: Transaction = {
+const novalnetCancelPaymentTransaction: Transaction = {
   id: 'dummy-transaction-id',
   timestamp: '2024-02-13T00:00:00.000Z',
   type: 'CancelAuthorization',
@@ -68,7 +68,7 @@ const mockCancelPaymentTransaction: Transaction = {
   state: 'Initial',
 };
 
-const mockRefundPaymentTransaction: Transaction = {
+const novalnetRefundPaymentTransaction: Transaction = {
   id: 'dummy-transaction-id',
   timestamp: '2024-02-13T00:00:00.000Z',
   type: 'Charge',
@@ -81,7 +81,7 @@ const mockRefundPaymentTransaction: Transaction = {
   state: 'Success',
 };
 
-export const mockUpdatePaymentResult: Payment = {
+export const novalnetUpdatePaymentResult: Payment = {
   id: '123456',
   version: 1,
   amountPlanned: {
@@ -96,13 +96,13 @@ export const mockUpdatePaymentResult: Payment = {
     name: { 'en-US': 'Debit Card', 'en-GB': 'Debit Card' },
   },
   paymentStatus: { interfaceText: 'Paid' },
-  transactions: [mockCancelPaymentTransaction],
+  transactions: [novalnetCancelPaymentTransaction],
   interfaceInteractions: [],
   createdAt: '2024-02-13T00:00:00.000Z',
   lastModifiedAt: '2024-02-13T00:00:00.000Z',
 };
 
-export const mockUpdatePaymentResultWithRefundTransaction: Payment = {
+export const novalnetUpdatePaymentResultWithRefundTransaction: Payment = {
   id: '123456',
   version: 1,
   amountPlanned: {
@@ -117,7 +117,7 @@ export const mockUpdatePaymentResultWithRefundTransaction: Payment = {
     name: { 'en-US': 'Debit Card', 'en-GB': 'Debit Card' },
   },
   paymentStatus: { interfaceText: 'Paid' },
-  transactions: [mockRefundPaymentTransaction],
+  transactions: [novalnetRefundPaymentTransaction],
   interfaceInteractions: [],
   createdAt: '2024-02-13T00:00:00.000Z',
   lastModifiedAt: '2024-02-13T00:00:00.000Z',

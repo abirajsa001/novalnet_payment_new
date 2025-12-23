@@ -12,58 +12,58 @@ describe('context', () => {
     merchantReturnUrl: 'https://merchant.return.url',
   };
 
-  const mockSessionAuthentication: SessionAuthentication = new SessionAuthentication(sessionId, principal);
+  const novalnetSessionAuthentication: SessionAuthentication = new SessionAuthentication(sessionId, principal);
 
   beforeEach(() => {
     jest.setTimeout(10000);
-    jest.resetAllMocks();
+    jest.resetAllNovalnets();
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    jest.restoreAllNovalnets();
   });
 
   test('getCtSessionIdFromContext', async () => {
-    const mockRequestContext = {
-      authentication: mockSessionAuthentication,
+    const novalnetRequestContext = {
+      authentication: novalnetSessionAuthentication,
     };
-    jest.spyOn(Context, 'getRequestContext').mockReturnValue(mockRequestContext);
+    jest.spyOn(Context, 'getRequestContext').novalnetReturnValue(novalnetRequestContext);
     const result = Context.getCtSessionIdFromContext();
     expect(result).toStrictEqual(sessionId);
   });
 
   test('getAllowedPaymentMethodsFromContext', async () => {
-    const mockRequestContext = {
-      authentication: mockSessionAuthentication,
+    const novalnetRequestContext = {
+      authentication: novalnetSessionAuthentication,
     };
-    jest.spyOn(Context, 'getRequestContext').mockReturnValue(mockRequestContext);
+    jest.spyOn(Context, 'getRequestContext').novalnetReturnValue(novalnetRequestContext);
     const result = Context.getAllowedPaymentMethodsFromContext();
     expect(result).toHaveLength(0);
   });
 
   test('getCartIdFromContext', async () => {
-    const mockRequestContext = {
-      authentication: mockSessionAuthentication,
+    const novalnetRequestContext = {
+      authentication: novalnetSessionAuthentication,
     };
-    jest.spyOn(Context, 'getRequestContext').mockReturnValue(mockRequestContext);
+    jest.spyOn(Context, 'getRequestContext').novalnetReturnValue(novalnetRequestContext);
     const result = Context.getCartIdFromContext();
     expect(result).toStrictEqual('123456');
   });
 
   test('getMerchantReturnUrlFromContext', async () => {
-    const mockRequestContext = {
-      authentication: mockSessionAuthentication,
+    const novalnetRequestContext = {
+      authentication: novalnetSessionAuthentication,
     };
-    jest.spyOn(Context, 'getRequestContext').mockReturnValue(mockRequestContext);
+    jest.spyOn(Context, 'getRequestContext').novalnetReturnValue(novalnetRequestContext);
     const result = Context.getMerchantReturnUrlFromContext();
     expect(result).toStrictEqual('https://merchant.return.url');
   });
 
   test('getProcessorUrlFromContext', async () => {
-    const mockRequestContext = {
-      authentication: mockSessionAuthentication,
+    const novalnetRequestContext = {
+      authentication: novalnetSessionAuthentication,
     };
-    jest.spyOn(Context, 'getRequestContext').mockReturnValue(mockRequestContext);
+    jest.spyOn(Context, 'getRequestContext').novalnetReturnValue(novalnetRequestContext);
     const result = Context.getProcessorUrlFromContext();
     expect(result).toStrictEqual('http://127.0.0.1');
   });

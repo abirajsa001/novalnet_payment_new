@@ -7,7 +7,7 @@ services:
     command: 
       - npx
       - --package
-      - jwt-mock-server
+      - jwt-novalnet-server
       - -y
       - start
     ports:

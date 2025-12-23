@@ -1,3 +1,3 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-console.log('mock-payment.type.ts');
+console.log('novalnet-payment.type.ts');

@@ -34,13 +34,13 @@ import dns from 'dns/promises';
 import { FastifyRequest } from 'fastify';
 import {
   CreatePaymentRequest,
-  MockPaymentServiceOptions,
-} from "./types/mock-payment.type";
+  NovalnetPaymentServiceOptions,
+} from "./types/novalnet-payment.type";
 import {
   PaymentMethodType,
   PaymentOutcome,
   PaymentResponseSchemaDTO,
-} from "../dtos/mock-payment.dto";
+} from "../dtos/novalnet-payment.dto";
 import {
   getCartIdFromContext,
   getPaymentInterfaceFromContext,
@@ -95,16 +95,16 @@ function getPaymentDueDate(configuredDueDate: number | string): string | null {
   return formattedDate;
 }
 
-export class MockPaymentService extends AbstractPaymentService {
-  constructor(opts: MockPaymentServiceOptions) {
+export class NovalnetPaymentService extends AbstractPaymentService {
+  constructor(opts: NovalnetPaymentServiceOptions) {
     super(opts.ctCartService, opts.ctPaymentService);
   }
 
   public async config(): Promise<ConfigResponse> {
     const config = getConfig();
     return {
-      clientKey: config.mockClientKey,
-      environment: config.mockEnvironment,
+      clientKey: config.novalnetClientKey,
+      environment: config.novalnetEnvironment,
     };
   }
 
@@ -130,19 +130,19 @@ export class MockPaymentService extends AbstractPaymentService {
           try {
             const paymentMethods = "card";
             return {
-              name: "Mock Payment API",
+              name: "Novalnet Payment API",
               status: "UP",
-              message: "Mock api is working",
+              message: "Novalnet api is working",
               details: {
                 paymentMethods,
               },
             };
           } catch (e) {
             return {
-              name: "Mock Payment API",
+              name: "Novalnet Payment API",
               status: "DOWN",
               message:
-                "The mock payment API is down for some reason. Please check the logs for more details.",
+                "The novalnet payment API is down for some reason. Please check the logs for more details.",
               details: {
                 error: e,
               },
@@ -686,7 +686,7 @@ const ctPayment = await this.ctPaymentService.createPayment({
     cart: ctCart,
   }),
   paymentMethodInfo: {
-    paymentInterface: getPaymentInterfaceFromContext() || "mock",
+    paymentInterface: getPaymentInterfaceFromContext() || "novalnet",
   },
   ...(ctCart.customerId && {
     customer: { typeId: "customer", id: ctCart.customerId },
@@ -1812,7 +1812,7 @@ public async updatePaymentStatusByPaymentId(
     });
     log.info("Payment amount calculated:", paymentAmount);
     
-    const paymentInterface = getPaymentInterfaceFromContext() || "mock";
+    const paymentInterface = getPaymentInterfaceFromContext() || "novalnet";
     log.info("Payment interface:", paymentInterface);
     
     const ctPayment = await this.ctPaymentService.createPayment({

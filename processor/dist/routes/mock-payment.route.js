@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.paymentRoutes = void 0;
 const crypto_1 = __importDefault(require("crypto"));
-const mock_payment_dto_1 = require("../dtos/mock-payment.dto");
+const novalnet_payment_dto_1 = require("../dtos/novalnet-payment.dto");
 const logger_1 = require("../libs/logger");
 const config_1 = require("../config/config");
 console.log("before-payment-routes");
@@ -59,9 +59,9 @@ const paymentRoutes = async (fastify, opts) => {
     fastify.post("/payments", {
         preHandler: [opts.sessionHeaderAuthHook.authenticate()],
         schema: {
-            body: mock_payment_dto_1.PaymentRequestSchema,
+            body: novalnet_payment_dto_1.PaymentRequestSchema,
             response: {
-                200: mock_payment_dto_1.PaymentResponseSchema,
+                200: novalnet_payment_dto_1.PaymentResponseSchema,
             },
         },
     }, async (request, reply) => {
@@ -89,9 +89,9 @@ const paymentRoutes = async (fastify, opts) => {
     fastify.post("/payment", {
         preHandler: [opts.sessionHeaderAuthHook.authenticate()],
         schema: {
-            body: mock_payment_dto_1.PaymentRequestSchema,
+            body: novalnet_payment_dto_1.PaymentRequestSchema,
             response: {
-                200: mock_payment_dto_1.PaymentResponseSchema,
+                200: novalnet_payment_dto_1.PaymentResponseSchema,
             },
         },
     }, async (request, reply) => {
@@ -153,9 +153,9 @@ const paymentRoutes = async (fastify, opts) => {
     fastify.get("/payments", {
         preHandler: [opts.sessionHeaderAuthHook.authenticate()],
         schema: {
-            querystring: mock_payment_dto_1.PaymentRequestSchema,
+            querystring: novalnet_payment_dto_1.PaymentRequestSchema,
             response: {
-                200: mock_payment_dto_1.PaymentResponseSchema,
+                200: novalnet_payment_dto_1.PaymentResponseSchema,
             },
         },
     }, async (request, reply) => {

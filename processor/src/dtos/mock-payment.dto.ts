@@ -37,7 +37,7 @@ export const PaymentResponseSchema = Type.Object({
   transactionStatus: Type.Optional(Type.String()),
   transactionStatusText: Type.Optional(Type.String()),
 });
-console.log("mock-payment-dto.ts");
+console.log("novalnet-payment-dto.ts");
 export const PaymentOutcomeSchema = Type.Enum(PaymentOutcome);
 
 export const PaymentRequestSchema = Type.Object({

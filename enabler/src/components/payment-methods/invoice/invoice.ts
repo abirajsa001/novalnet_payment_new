@@ -10,8 +10,8 @@ import buttonStyles from "../../../style/button.module.scss";
 import {
   PaymentOutcome,
   PaymentRequestSchemaDTO,
-} from "../../../dtos/mock-payment.dto";
-import { BaseOptions } from "../../../payment-enabler/payment-enabler-mock";
+} from "../../../dtos/novalnet-payment.dto";
+import { BaseOptions } from "../../../payment-enabler/payment-enabler-novalnet";
 
 export class InvoiceBuilder implements PaymentComponentBuilder {
   public componentHasSubmit = true;

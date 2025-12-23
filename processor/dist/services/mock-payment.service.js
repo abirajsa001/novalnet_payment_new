@@ -36,14 +36,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.MockPaymentService = void 0;
+exports.NovalnetPaymentService = void 0;
 const connect_payments_sdk_1 = require("@commercetools/connect-payments-sdk");
 const payment_intents_dto_1 = require("../dtos/operations/payment-intents.dto");
 const package_json_1 = __importDefault(require("../../package.json"));
 const abstract_payment_service_1 = require("./abstract-payment.service");
 const config_1 = require("../config/config");
 const payment_sdk_1 = require("../payment-sdk");
-const mock_payment_dto_1 = require("../dtos/mock-payment.dto");
+const novalnet_payment_dto_1 = require("../dtos/novalnet-payment.dto");
 const context_1 = require("../libs/fastify/context/context");
 const crypto_1 = require("crypto");
 const logger_1 = require("../libs/logger");
@@ -70,15 +70,15 @@ function getPaymentDueDate(configuredDueDate) {
     const formattedDate = dueDate.toISOString().split("T")[0];
     return formattedDate;
 }
-class MockPaymentService extends abstract_payment_service_1.AbstractPaymentService {
+class NovalnetPaymentService extends abstract_payment_service_1.AbstractPaymentService {
     constructor(opts) {
         super(opts.ctCartService, opts.ctPaymentService);
     }
     async config() {
         const config = (0, config_1.getConfig)();
         return {
-            clientKey: config.mockClientKey,
-            environment: config.mockEnvironment,
+            clientKey: config.novalnetClientKey,
+            environment: config.novalnetEnvironment,
         };
     }
     async status() {
@@ -103,9 +103,9 @@ class MockPaymentService extends abstract_payment_service_1.AbstractPaymentServi
                     try {
                         const paymentMethods = "card";
                         return {
-                            name: "Mock Payment API",
+                            name: "Novalnet Payment API",
                             status: "UP",
-                            message: "Mock api is working",
+                            message: "Novalnet api is working",
                             details: {
                                 paymentMethods,
                             },
@@ -113,9 +113,9 @@ class MockPaymentService extends abstract_payment_service_1.AbstractPaymentServi
                     }
                     catch (e) {
                         return {
-                            name: "Mock Payment API",
+                            name: "Novalnet Payment API",
                             status: "DOWN",
-                            message: "The mock payment API is down for some reason. Please check the logs for more details.",
+                            message: "The novalnet payment API is down for some reason. Please check the logs for more details.",
                             details: {
                                 error: e,
                             },
@@ -135,28 +135,28 @@ class MockPaymentService extends abstract_payment_service_1.AbstractPaymentServi
         return {
             dropins: [],
             components: [
-                { type: mock_payment_dto_1.PaymentMethodType.CARD },
-                { type: mock_payment_dto_1.PaymentMethodType.INVOICE },
-                { type: mock_payment_dto_1.PaymentMethodType.PREPAYMENT },
-                { type: mock_payment_dto_1.PaymentMethodType.IDEAL },
-                { type: mock_payment_dto_1.PaymentMethodType.PAYPAL },
-                { type: mock_payment_dto_1.PaymentMethodType.ONLINE_BANK_TRANSFER },
-                { type: mock_payment_dto_1.PaymentMethodType.ALIPAY },
-                { type: mock_payment_dto_1.PaymentMethodType.BANCONTACT },
-                { type: mock_payment_dto_1.PaymentMethodType.BLIK },
-                { type: mock_payment_dto_1.PaymentMethodType.EPS },
-                { type: mock_payment_dto_1.PaymentMethodType.MBWAY },
-                { type: mock_payment_dto_1.PaymentMethodType.MULTIBANCO },
-                { type: mock_payment_dto_1.PaymentMethodType.PAYCONIQ },
-                { type: mock_payment_dto_1.PaymentMethodType.POSTFINANCE },
-                { type: mock_payment_dto_1.PaymentMethodType.POSTFINANCE_CARD },
-                { type: mock_payment_dto_1.PaymentMethodType.PRZELEWY24 },
-                { type: mock_payment_dto_1.PaymentMethodType.TRUSTLY },
-                { type: mock_payment_dto_1.PaymentMethodType.TWINT },
-                { type: mock_payment_dto_1.PaymentMethodType.WECHATPAY },
-                { type: mock_payment_dto_1.PaymentMethodType.SEPA },
-                { type: mock_payment_dto_1.PaymentMethodType.ACH },
-                { type: mock_payment_dto_1.PaymentMethodType.CREDITCARD },
+                { type: novalnet_payment_dto_1.PaymentMethodType.CARD },
+                { type: novalnet_payment_dto_1.PaymentMethodType.INVOICE },
+                { type: novalnet_payment_dto_1.PaymentMethodType.PREPAYMENT },
+                { type: novalnet_payment_dto_1.PaymentMethodType.IDEAL },
+                { type: novalnet_payment_dto_1.PaymentMethodType.PAYPAL },
+                { type: novalnet_payment_dto_1.PaymentMethodType.ONLINE_BANK_TRANSFER },
+                { type: novalnet_payment_dto_1.PaymentMethodType.ALIPAY },
+                { type: novalnet_payment_dto_1.PaymentMethodType.BANCONTACT },
+                { type: novalnet_payment_dto_1.PaymentMethodType.BLIK },
+                { type: novalnet_payment_dto_1.PaymentMethodType.EPS },
+                { type: novalnet_payment_dto_1.PaymentMethodType.MBWAY },
+                { type: novalnet_payment_dto_1.PaymentMethodType.MULTIBANCO },
+                { type: novalnet_payment_dto_1.PaymentMethodType.PAYCONIQ },
+                { type: novalnet_payment_dto_1.PaymentMethodType.POSTFINANCE },
+                { type: novalnet_payment_dto_1.PaymentMethodType.POSTFINANCE_CARD },
+                { type: novalnet_payment_dto_1.PaymentMethodType.PRZELEWY24 },
+                { type: novalnet_payment_dto_1.PaymentMethodType.TRUSTLY },
+                { type: novalnet_payment_dto_1.PaymentMethodType.TWINT },
+                { type: novalnet_payment_dto_1.PaymentMethodType.WECHATPAY },
+                { type: novalnet_payment_dto_1.PaymentMethodType.SEPA },
+                { type: novalnet_payment_dto_1.PaymentMethodType.ACH },
+                { type: novalnet_payment_dto_1.PaymentMethodType.CREDITCARD },
             ],
         };
     }
@@ -461,7 +461,7 @@ class MockPaymentService extends abstract_payment_service_1.AbstractPaymentServi
                 cart: ctCart,
             }),
             paymentMethodInfo: {
-                paymentInterface: (0, context_1.getPaymentInterfaceFromContext)() || "mock",
+                paymentInterface: (0, context_1.getPaymentInterfaceFromContext)() || "novalnet",
             },
             paymentStatus: {
                 interfaceCode: JSON.stringify(parsedResponse),
@@ -542,7 +542,7 @@ class MockPaymentService extends abstract_payment_service_1.AbstractPaymentServi
             cart: ctCart,
         });
         logger_1.log.info("Payment amount calculated:", paymentAmount);
-        const paymentInterface = (0, context_1.getPaymentInterfaceFromContext)() || "mock";
+        const paymentInterface = (0, context_1.getPaymentInterfaceFromContext)() || "novalnet";
         logger_1.log.info("Payment interface:", paymentInterface);
         const ctPayment = await this.ctPaymentService.createPayment({
             amountPlanned: paymentAmount,
@@ -756,13 +756,13 @@ class MockPaymentService extends abstract_payment_service_1.AbstractPaymentServi
     }
     convertPaymentResultCode(resultCode) {
         switch (resultCode) {
-            case mock_payment_dto_1.PaymentOutcome.AUTHORIZED:
+            case novalnet_payment_dto_1.PaymentOutcome.AUTHORIZED:
                 return "Success";
-            case mock_payment_dto_1.PaymentOutcome.REJECTED:
+            case novalnet_payment_dto_1.PaymentOutcome.REJECTED:
                 return "Failure";
             default:
                 return "Initial";
         }
     }
 }
-exports.MockPaymentService = MockPaymentService;
+exports.NovalnetPaymentService = NovalnetPaymentService;

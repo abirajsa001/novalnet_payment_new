@@ -48,11 +48,11 @@ export type BaseOptions = {
   onError: (error: any, context?: { paymentReference?: string }) => void;
 };
 
-export class MockPaymentEnabler implements PaymentEnabler {
+export class NovalnetPaymentEnabler implements PaymentEnabler {
   setupData: Promise<{ baseOptions: BaseOptions }>;
 
   constructor(options: EnablerOptions) {
-    this.setupData = MockPaymentEnabler._Setup(options);
+    this.setupData = NovalnetPaymentEnabler._Setup(options);
   }
 
   private static _Setup = async (

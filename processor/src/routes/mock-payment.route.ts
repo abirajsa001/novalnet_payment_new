@@ -16,19 +16,19 @@ import {
   PaymentRequestSchemaDTO,
   PaymentResponseSchema,
   PaymentResponseSchemaDTO,
-} from "../dtos/mock-payment.dto";
+} from "../dtos/novalnet-payment.dto";
 import {
   Address,
   Customer,
   CustomerSetCustomFieldAction,
   CustomerSetCustomTypeAction,
 } from '@commercetools/platform-sdk';
-import { MockPaymentService } from "../services/mock-payment.service";
+import { NovalnetPaymentService } from "../services/novalnet-payment.service";
 import { log } from "../libs/logger";
 import { getConfig } from "../config/config";
 import { projectApiRoot } from '../utils/ct-client';
 type PaymentRoutesOptions = {
-  paymentService: MockPaymentService;
+  paymentService: NovalnetPaymentService;
   sessionHeaderAuthHook: SessionHeaderAuthenticationHook;
 };
 console.log("before-payment-routes");

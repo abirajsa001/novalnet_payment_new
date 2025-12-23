@@ -1,9 +1,9 @@
 import { Cart, LineItem, CustomLineItem, ShippingInfo } from '@commercetools/connect-payments-sdk';
 import { randomUUID } from 'crypto';
 
-export const mockGetCartResult = () => {
+export const novalnetGetCartResult = () => {
   const cartId = randomUUID();
-  const mockGetCartResult: Cart = {
+  const novalnetGetCartResult: Cart = {
     id: cartId,
     version: 1,
     lineItems: [lineItem],
@@ -30,7 +30,7 @@ export const mockGetCartResult = () => {
     createdAt: '2024-01-01T00:00:00Z',
     lastModifiedAt: '2024-01-01T00:00:00Z',
   };
-  return mockGetCartResult;
+  return novalnetGetCartResult;
 };
 
 const lineItem: LineItem = {

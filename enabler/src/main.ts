@@ -1,3 +1,3 @@
-import { MockPaymentEnabler } from './payment-enabler/payment-enabler-mock';
+import { NovalnetPaymentEnabler } from './payment-enabler/payment-enabler-novalnet';
 
-export { MockPaymentEnabler as Enabler };
+export { NovalnetPaymentEnabler as Enabler };

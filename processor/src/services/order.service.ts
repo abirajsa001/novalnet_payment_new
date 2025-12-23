@@ -41,11 +41,11 @@ export async function getOrderByOrderNumber(orderNumber: string): Promise<any | 
       .get()
       .execute();
 
-    console.log('Mock API response:', response.body);
+    console.log('Novalnet API response:', response.body);
 
     return response.body;
   } catch (error: any) {
-    console.log('Error fetching order (mock):', error);
+    console.log('Error fetching order (novalnet):', error);
     return null;
   }
 }

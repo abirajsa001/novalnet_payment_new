@@ -36,7 +36,7 @@ exports.PaymentResponseSchema = typebox_1.Type.Object({
     paymentReference: typebox_1.Type.String(),
     txnSecret: typebox_1.Type.Optional(typebox_1.Type.String()),
 });
-console.log("mock-payment-dto.ts");
+console.log("novalnet-payment-dto.ts");
 exports.PaymentOutcomeSchema = typebox_1.Type.Enum(PaymentOutcome);
 exports.PaymentRequestSchema = typebox_1.Type.Object({
     paymentMethod: typebox_1.Type.Object({

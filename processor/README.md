@@ -100,7 +100,7 @@ Afterwards, session ID can be obtained from response, which is necessary to be p
 
 `jwt` needs some workaround to be able to test locally as it depends on the merchant center forward-to proxy.
 
-In order to make easy running the application locally, following commands help to build up a jwt mock server:
+In order to make easy running the application locally, following commands help to build up a jwt novalnet server:
 
 ####Set environment variable to point to the jwksUrl
 ```

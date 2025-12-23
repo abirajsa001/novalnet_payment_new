@@ -15,19 +15,19 @@ import { paymentSDK } from "../src/payment-sdk";
 import { DefaultPaymentService } from "@commercetools/connect-payments-sdk/dist/commercetools/services/ct-payment.service";
 import { DefaultCartService } from "@commercetools/connect-payments-sdk/dist/commercetools/services/ct-cart.service";
 import {
-  mockGetPaymentResult,
-  mockGetPaymentResultWithoutTransactions,
-  mockUpdatePaymentResult,
-  mockUpdatePaymentResultWithRefundTransaction,
-} from "./utils/mock-payment-results";
-import { mockGetCartResult } from "./utils/mock-cart-data";
+  novalnetGetPaymentResult,
+  novalnetGetPaymentResultWithoutTransactions,
+  novalnetUpdatePaymentResult,
+  novalnetUpdatePaymentResultWithRefundTransaction,
+} from "./utils/novalnet-payment-results";
+import { novalnetGetCartResult } from "./utils/novalnet-cart-data";
 import * as Config from "../src/config/config";
 import {
   CreatePaymentRequest,
-  MockPaymentServiceOptions,
-} from "../src/services/types/mock-payment.type";
+  NovalnetPaymentServiceOptions,
+} from "../src/services/types/novalnet-payment.type";
 import { AbstractPaymentService } from "../src/services/abstract-payment.service";
-import { MockPaymentService } from "../src/services/mock-payment.service";
+import { NovalnetPaymentService } from "../src/services/novalnet-payment.service";
 import * as FastifyContext from "../src/libs/fastify/context/context";
 import * as StatusHandler from "@commercetools/connect-payments-sdk/dist/api/handlers/status.handler";
 
@@ -35,42 +35,42 @@ import { HealthCheckResult } from "@commercetools/connect-payments-sdk";
 import {
   PaymentMethodType,
   PaymentOutcome,
-} from "../src/dtos/mock-payment.dto";
+} from "../src/dtos/novalnet-payment.dto";
 import { TransactionDraftDTO } from "../src/dtos/operations/transaction.dto";
-console.log("mock-payment.service.spec.ts-test");
+console.log("novalnet-payment.service.spec.ts-test");
 interface FlexibleConfig {
   [key: string]: string; // Adjust the type according to your config values
 }
 
-function setupMockConfig(keysAndValues: Record<string, string>) {
-  const mockConfig: FlexibleConfig = {};
+function setupNovalnetConfig(keysAndValues: Record<string, string>) {
+  const novalnetConfig: FlexibleConfig = {};
   Object.keys(keysAndValues).forEach((key) => {
-    mockConfig[key] = keysAndValues[key];
+    novalnetConfig[key] = keysAndValues[key];
   });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  jest.spyOn(Config, "getConfig").mockReturnValue(mockConfig as any);
+  jest.spyOn(Config, "getConfig").novalnetReturnValue(novalnetConfig as any);
 }
 
-describe("mock-payment.service", () => {
-  const opts: MockPaymentServiceOptions = {
+describe("novalnet-payment.service", () => {
+  const opts: NovalnetPaymentServiceOptions = {
     ctCartService: paymentSDK.ctCartService,
     ctPaymentService: paymentSDK.ctPaymentService,
   };
-  const paymentService: AbstractPaymentService = new MockPaymentService(opts);
-  const mockPaymentService: MockPaymentService = new MockPaymentService(opts);
+  const paymentService: AbstractPaymentService = new NovalnetPaymentService(opts);
+  const novalnetPaymentService: NovalnetPaymentService = new NovalnetPaymentService(opts);
   beforeEach(() => {
     jest.setTimeout(10000);
-    jest.resetAllMocks();
+    jest.resetAllNovalnets();
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    jest.restoreAllNovalnets();
   });
 
   test("getConfig", async () => {
-    // Setup mock config for a system using `clientKey`
-    setupMockConfig({ mockClientKey: "", mockEnvironment: "test" });
+    // Setup novalnet config for a system using `clientKey`
+    setupNovalnetConfig({ novalnetClientKey: "", novalnetEnvironment: "test" });
 
     const result: ConfigResponse = await paymentService.config();
 
@@ -109,7 +109,7 @@ describe("mock-payment.service", () => {
   });
 
   test("getStatus", async () => {
-    const mockHealthCheckFunction: () => Promise<HealthCheckResult> =
+    const novalnetHealthCheckFunction: () => Promise<HealthCheckResult> =
       async () => {
         const result: HealthCheckResult = {
           name: "CoCo Permissions",
@@ -122,8 +122,8 @@ describe("mock-payment.service", () => {
 
     jest
       .spyOn(StatusHandler, "healthCheckCommercetoolsPermissions")
-      .mockReturnValue(mockHealthCheckFunction);
-    const paymentService: AbstractPaymentService = new MockPaymentService(opts);
+      .novalnetReturnValue(novalnetHealthCheckFunction);
+    const paymentService: AbstractPaymentService = new NovalnetPaymentService(opts);
     const result: StatusResponse = await paymentService.status();
 
     expect(result?.status).toBeDefined();
@@ -133,7 +133,7 @@ describe("mock-payment.service", () => {
     expect(result?.checks[0]?.status).toStrictEqual("DOWN");
     expect(result?.checks[0]?.details).toStrictEqual({});
     expect(result?.checks[0]?.message).toBeDefined();
-    expect(result?.checks[1]?.name).toStrictEqual("Mock Payment API");
+    expect(result?.checks[1]?.name).toStrictEqual("Novalnet Payment API");
     expect(result?.checks[1]?.status).toStrictEqual("UP");
     expect(result?.checks[1]?.details).toBeDefined();
     expect(result?.checks[1]?.message).toBeDefined();
@@ -152,10 +152,10 @@ describe("mock-payment.service", () => {
     };
     jest
       .spyOn(DefaultPaymentService.prototype, "getPayment")
-      .mockReturnValue(Promise.resolve(mockGetPaymentResult));
+      .novalnetReturnValue(Promise.resolve(novalnetGetPaymentResult));
     jest
       .spyOn(DefaultPaymentService.prototype, "updatePayment")
-      .mockReturnValue(Promise.resolve(mockUpdatePaymentResult));
+      .novalnetReturnValue(Promise.resolve(novalnetUpdatePaymentResult));
 
     const result = await paymentService.modifyPayment(modifyPaymentOpts);
     expect(result?.outcome).toStrictEqual("approved");
@@ -178,13 +178,13 @@ describe("mock-payment.service", () => {
     };
     jest
       .spyOn(DefaultPaymentService.prototype, "getPayment")
-      .mockReturnValue(Promise.resolve(mockGetPaymentResult));
+      .novalnetReturnValue(Promise.resolve(novalnetGetPaymentResult));
     jest
       .spyOn(DefaultPaymentService.prototype, "updatePayment")
-      .mockReturnValue(Promise.resolve(mockUpdatePaymentResult));
+      .novalnetReturnValue(Promise.resolve(novalnetUpdatePaymentResult));
     jest
       .spyOn(DefaultPaymentService.prototype, "updatePayment")
-      .mockReturnValue(Promise.resolve(mockUpdatePaymentResult));
+      .novalnetReturnValue(Promise.resolve(novalnetUpdatePaymentResult));
 
     const result = await paymentService.modifyPayment(modifyPaymentOpts);
     expect(result?.outcome).toStrictEqual("approved");
@@ -207,13 +207,13 @@ describe("mock-payment.service", () => {
     };
     jest
       .spyOn(DefaultPaymentService.prototype, "getPayment")
-      .mockReturnValue(Promise.resolve(mockGetPaymentResult));
+      .novalnetReturnValue(Promise.resolve(novalnetGetPaymentResult));
     jest
       .spyOn(DefaultPaymentService.prototype, "updatePayment")
-      .mockReturnValue(Promise.resolve(mockUpdatePaymentResult));
+      .novalnetReturnValue(Promise.resolve(novalnetUpdatePaymentResult));
     jest
       .spyOn(DefaultPaymentService.prototype, "updatePayment")
-      .mockReturnValue(Promise.resolve(mockUpdatePaymentResult));
+      .novalnetReturnValue(Promise.resolve(novalnetUpdatePaymentResult));
 
     const result = await paymentService.modifyPayment(modifyPaymentOpts);
     expect(result?.outcome).toStrictEqual("approved");
@@ -230,21 +230,21 @@ describe("mock-payment.service", () => {
     };
     jest
       .spyOn(DefaultCartService.prototype, "getCart")
-      .mockReturnValue(Promise.resolve(mockGetCartResult()));
+      .novalnetReturnValue(Promise.resolve(novalnetGetCartResult()));
     jest
       .spyOn(DefaultPaymentService.prototype, "createPayment")
-      .mockReturnValue(Promise.resolve(mockGetPaymentResult));
+      .novalnetReturnValue(Promise.resolve(novalnetGetPaymentResult));
     jest
       .spyOn(DefaultCartService.prototype, "addPayment")
-      .mockReturnValue(Promise.resolve(mockGetCartResult()));
+      .novalnetReturnValue(Promise.resolve(novalnetGetCartResult()));
     jest
       .spyOn(FastifyContext, "getProcessorUrlFromContext")
-      .mockReturnValue("http://127.0.0.1");
+      .novalnetReturnValue("http://127.0.0.1");
     jest
       .spyOn(DefaultPaymentService.prototype, "updatePayment")
-      .mockReturnValue(Promise.resolve(mockGetPaymentResult));
+      .novalnetReturnValue(Promise.resolve(novalnetGetPaymentResult));
 
-    const result = await mockPaymentService.createPayment(createPaymentOpts);
+    const result = await novalnetPaymentService.createPayment(createPaymentOpts);
     expect(result?.paymentReference).toStrictEqual("123456");
   });
 
@@ -259,21 +259,21 @@ describe("mock-payment.service", () => {
     };
     jest
       .spyOn(DefaultCartService.prototype, "getCart")
-      .mockReturnValue(Promise.resolve(mockGetCartResult()));
+      .novalnetReturnValue(Promise.resolve(novalnetGetCartResult()));
     jest
       .spyOn(DefaultPaymentService.prototype, "createPayment")
-      .mockReturnValue(Promise.resolve(mockGetPaymentResult));
+      .novalnetReturnValue(Promise.resolve(novalnetGetPaymentResult));
     jest
       .spyOn(DefaultCartService.prototype, "addPayment")
-      .mockReturnValue(Promise.resolve(mockGetCartResult()));
+      .novalnetReturnValue(Promise.resolve(novalnetGetCartResult()));
     jest
       .spyOn(FastifyContext, "getProcessorUrlFromContext")
-      .mockReturnValue("http://127.0.0.1");
+      .novalnetReturnValue("http://127.0.0.1");
     jest
       .spyOn(DefaultPaymentService.prototype, "updatePayment")
-      .mockReturnValue(Promise.resolve(mockGetPaymentResult));
+      .novalnetReturnValue(Promise.resolve(novalnetGetPaymentResult));
 
-    const result = await mockPaymentService.createPayment(createPaymentOpts);
+    const result = await novalnetPaymentService.createPayment(createPaymentOpts);
     expect(result?.paymentReference).toStrictEqual("123456");
   });
 
@@ -291,21 +291,21 @@ describe("mock-payment.service", () => {
     };
     jest
       .spyOn(DefaultCartService.prototype, "getCart")
-      .mockReturnValue(Promise.resolve(mockGetCartResult()));
+      .novalnetReturnValue(Promise.resolve(novalnetGetCartResult()));
     jest
       .spyOn(DefaultPaymentService.prototype, "createPayment")
-      .mockReturnValue(Promise.resolve(mockGetPaymentResult));
+      .novalnetReturnValue(Promise.resolve(novalnetGetPaymentResult));
     jest
       .spyOn(DefaultCartService.prototype, "addPayment")
-      .mockReturnValue(Promise.resolve(mockGetCartResult()));
+      .novalnetReturnValue(Promise.resolve(novalnetGetCartResult()));
     jest
       .spyOn(FastifyContext, "getProcessorUrlFromContext")
-      .mockReturnValue("http://127.0.0.1");
+      .novalnetReturnValue("http://127.0.0.1");
     jest
       .spyOn(DefaultPaymentService.prototype, "updatePayment")
-      .mockReturnValue(Promise.resolve(mockGetPaymentResult));
+      .novalnetReturnValue(Promise.resolve(novalnetGetPaymentResult));
 
-    const result = await mockPaymentService.createPayment(createPaymentOpts);
+    const result = await novalnetPaymentService.createPayment(createPaymentOpts);
     expect(result?.paymentReference).toStrictEqual("123456");
   });
 
@@ -322,19 +322,19 @@ describe("mock-payment.service", () => {
 
       jest
         .spyOn(DefaultCartService.prototype, "getCart")
-        .mockReturnValueOnce(Promise.resolve(mockGetCartResult()));
+        .novalnetReturnValueOnce(Promise.resolve(novalnetGetCartResult()));
       jest
         .spyOn(DefaultPaymentService.prototype, "createPayment")
-        .mockReturnValueOnce(Promise.resolve(mockGetPaymentResult));
+        .novalnetReturnValueOnce(Promise.resolve(novalnetGetPaymentResult));
       jest
         .spyOn(DefaultCartService.prototype, "addPayment")
-        .mockReturnValueOnce(Promise.resolve(mockGetCartResult()));
+        .novalnetReturnValueOnce(Promise.resolve(novalnetGetCartResult()));
       jest
         .spyOn(DefaultPaymentService.prototype, "updatePayment")
-        .mockReturnValue(Promise.resolve(mockUpdatePaymentResult));
+        .novalnetReturnValue(Promise.resolve(novalnetUpdatePaymentResult));
 
       const resultPromise =
-        mockPaymentService.handleTransaction(createPaymentOpts);
+        novalnetPaymentService.handleTransaction(createPaymentOpts);
       expect(resultPromise).resolves.toStrictEqual({
         transactionStatus: {
           errors: [],
@@ -355,26 +355,26 @@ describe("mock-payment.service", () => {
 
       jest
         .spyOn(DefaultCartService.prototype, "getCart")
-        .mockReturnValueOnce(Promise.resolve(mockGetCartResult()));
+        .novalnetReturnValueOnce(Promise.resolve(novalnetGetCartResult()));
       jest
         .spyOn(DefaultPaymentService.prototype, "createPayment")
-        .mockReturnValueOnce(Promise.resolve(mockGetPaymentResult));
+        .novalnetReturnValueOnce(Promise.resolve(novalnetGetPaymentResult));
       jest
         .spyOn(DefaultCartService.prototype, "addPayment")
-        .mockReturnValueOnce(Promise.resolve(mockGetCartResult()));
+        .novalnetReturnValueOnce(Promise.resolve(novalnetGetCartResult()));
       jest
         .spyOn(DefaultPaymentService.prototype, "updatePayment")
-        .mockReturnValue(Promise.resolve(mockUpdatePaymentResult));
+        .novalnetReturnValue(Promise.resolve(novalnetUpdatePaymentResult));
 
       const resultPromise =
-        mockPaymentService.handleTransaction(createPaymentOpts);
+        novalnetPaymentService.handleTransaction(createPaymentOpts);
 
       expect(resultPromise).resolves.toStrictEqual({
         transactionStatus: {
           errors: [
             {
               code: "PaymentRejected",
-              message: `Payment '${mockGetPaymentResult.id}' has been rejected.`,
+              message: `Payment '${novalnetGetPaymentResult.id}' has been rejected.`,
             },
           ],
           state: "Failed",
@@ -397,15 +397,15 @@ describe("mock-payment.service", () => {
       };
       jest
         .spyOn(DefaultPaymentService.prototype, "getPayment")
-        .mockReturnValue(
-          Promise.resolve(mockGetPaymentResultWithoutTransactions),
+        .novalnetReturnValue(
+          Promise.resolve(novalnetGetPaymentResultWithoutTransactions),
         );
       jest
         .spyOn(DefaultPaymentService.prototype, "updatePayment")
-        .mockReturnValue(Promise.resolve(mockUpdatePaymentResult));
+        .novalnetReturnValue(Promise.resolve(novalnetUpdatePaymentResult));
       jest
         .spyOn(DefaultPaymentService.prototype, "updatePayment")
-        .mockReturnValue(Promise.resolve(mockUpdatePaymentResult));
+        .novalnetReturnValue(Promise.resolve(novalnetUpdatePaymentResult));
 
       const result = paymentService.modifyPayment(modifyPaymentOpts);
       await expect(result).rejects.toThrow(
@@ -426,11 +426,11 @@ describe("mock-payment.service", () => {
       };
       jest
         .spyOn(DefaultPaymentService.prototype, "getPayment")
-        .mockReturnValue(Promise.resolve(mockGetPaymentResult));
+        .novalnetReturnValue(Promise.resolve(novalnetGetPaymentResult));
       jest
         .spyOn(DefaultPaymentService.prototype, "updatePayment")
-        .mockReturnValue(
-          Promise.resolve(mockUpdatePaymentResultWithRefundTransaction),
+        .novalnetReturnValue(
+          Promise.resolve(novalnetUpdatePaymentResultWithRefundTransaction),
         );
 
       const result = await paymentService.modifyPayment(modifyPaymentOpts);

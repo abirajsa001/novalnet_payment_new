@@ -3,7 +3,7 @@ import {
   DropinOptions,
   PaymentDropinBuilder,
 } from "../payment-enabler/payment-enabler";
-import { BaseOptions } from "../payment-enabler/payment-enabler-mock";
+import { BaseOptions } from "../payment-enabler/payment-enabler-novalnet";
 
 export class DropinEmbeddedBuilder implements PaymentDropinBuilder {
   public dropinHasSubmit = false;

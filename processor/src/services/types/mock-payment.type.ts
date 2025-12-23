@@ -1,7 +1,7 @@
-import { PaymentRequestSchemaDTO } from '../../dtos/mock-payment.dto';
+import { PaymentRequestSchemaDTO } from '../../dtos/novalnet-payment.dto';
 import { CommercetoolsCartService, CommercetoolsPaymentService } from '@commercetools/connect-payments-sdk';
-console.log('mock-payment.type.ts');
-export type MockPaymentServiceOptions = {
+console.log('novalnet-payment.type.ts');
+export type NovalnetPaymentServiceOptions = {
   ctCartService: CommercetoolsCartService;
   ctPaymentService: CommercetoolsPaymentService;
 };

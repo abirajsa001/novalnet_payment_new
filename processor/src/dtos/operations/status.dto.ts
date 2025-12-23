@@ -19,7 +19,7 @@ import { Static, Type } from '@sinclair/typebox';
  *            "status": "UP"
  *        },
  *        {
- *            "name": "Mock Payment API",
+ *            "name": "Novalnet Payment API",
  *            "status": "UP"
  *        }
  *    ]

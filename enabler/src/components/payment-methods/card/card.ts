@@ -9,8 +9,8 @@ import inputFieldStyles from '../../../style/inputField.module.scss';
 import styles from '../../../style/style.module.scss';
 import { BaseComponent } from "../../base";
 import {addFormFieldsEventListeners, fieldIds, getCardBrand, getInput, validateAllFields} from './utils';
-import {PaymentOutcome, PaymentRequestSchemaDTO} from "../../../dtos/mock-payment.dto.ts";
-import { BaseOptions } from "../../../payment-enabler/payment-enabler-mock.ts";
+import {PaymentOutcome, PaymentRequestSchemaDTO} from "../../../dtos/novalnet-payment.dto.ts";
+import { BaseOptions } from "../../../payment-enabler/payment-enabler-novalnet.ts";
 
 export class CardBuilder implements PaymentComponentBuilder {
   public componentHasSubmit = true
@@ -50,7 +50,7 @@ export class Card extends BaseComponent {
       return;
     }
     try {
-      // Below is a mock implementation but not recommend and PCI compliant approach,
+      // Below is a novalnet implementation but not recommend and PCI compliant approach,
       // please use respective PSP iframe capabilities to handle PAN data
       const requestData = {
         paymentMethod: {
@@ -63,7 +63,7 @@ export class Card extends BaseComponent {
         }
       };
 
-      // Mock Validation
+      // Novalnet Validation
       let isAuthorized = this.isCreditCardAllowed(requestData.paymentMethod.cardNumber);
       const resultCode = isAuthorized ? PaymentOutcome.AUTHORIZED : PaymentOutcome.REJECTED;
 

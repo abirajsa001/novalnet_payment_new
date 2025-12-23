@@ -23,8 +23,8 @@ export const config = {
   loggerLevel: process.env.LOGGER_LEVEL || "info",
 
   // Update with specific payment providers config
-  mockClientKey: process.env.MOCK_CLIENT_KEY,
-  mockEnvironment: process.env.MOCK_ENVIRONMENT,
+  novalnetClientKey: process.env.Novalnet_CLIENT_KEY,
+  novalnetEnvironment: process.env.Novalnet_ENVIRONMENT,
 
   // Update with specific payment providers config
   novalnetPublicKey: process.env.NOVALNET_PUBLIC_KEY || "",
