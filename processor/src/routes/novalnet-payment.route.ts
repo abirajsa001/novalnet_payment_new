@@ -310,6 +310,10 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
     return reply.send("sucess");
   });
 
+  fastify.get('/health', async () => {
+    return { status: 'UP' };
+  });
+  
   fastify.post<{ Body: any }>('/webhook', async (req, reply) => {
     try {
       const body = req.body as Record<string, any> | any[];

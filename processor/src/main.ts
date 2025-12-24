@@ -1,17 +1,14 @@
-import dotenv from 'dotenv';
-dotenv.config();
-
 import { setupFastify } from './server/server';
-console.log('main.ts');
+
 (async () => {
   const server = await setupFastify();
 
-  const HOST = '0.0.0.0';
+  const port = Number(process.env.PORT || 8080);
+  const host = '0.0.0.0';
+
   try {
-    await server.listen({
-      port: 8080,
-      host: HOST,
-    });
+    await server.listen({ port, host });
+    server.log.info(`Server listening on ${host}:${port}`);
   } catch (err) {
     server.log.error(err);
     process.exit(1);

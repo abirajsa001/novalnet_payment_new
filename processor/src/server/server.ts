@@ -41,5 +41,10 @@ export const setupFastify = async () => {
     dir: join(__dirname, 'plugins'),
   });
 
+  await server.register(autoLoad, {
+    dir: join(__dirname, 'routes'),
+  });
+
+  
   return server;
 };
