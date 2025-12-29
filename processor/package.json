@@ -1,5 +1,5 @@
 {
-  "name": "payment-integration-template",
+  "name": "novalnet-payment-integration",
   "version": "4.1.0",
   "type": "commonjs",
   "main": "dist/main.js",
