@@ -161,8 +161,6 @@ export enum PaymentMethod {
   applepay = "applepay",
   /* Bancontact card */
   bancontactcard = "bcmc",
-  /* Card */
-  card = "card",
   /* EPS */
   eps = "eps",
   /* Google Pay */
